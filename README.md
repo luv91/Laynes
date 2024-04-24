@@ -57,7 +57,7 @@ LANGFUSE_PUBLIC_KEY=<your-langfuse-public-key> # Public key for Langfuse service
 LANGFUSE_SECRET_KEY=<your-langfuse-secret-key> # Secret key for Langfuse services
 ```
 
-Make sure to replace <your-secret-key>, <your-upload-service-url>, <your-openai-api-key>, <your-pinecone-api-key>, <your-pinecone-env-name>, <your-pinecone-index-name>, <your-langfuse-public-key>, and <your-langfuse-secret-key> with the actual values you've been provided or that you've set up for these services.
+Make sure to replace ```<your-secret-key>, <your-upload-service-url>, <your-openai-api-key>, <your-pinecone-api-key>, <your-pinecone-env-name>, <your-pinecone-index-name>, <your-langfuse-public-key>, and <your-langfuse-secret-key>``` with the actual values you've been provided or that you've set up for these services.
 
 **Keep this .env file in the parent folder in your local repo to be secure and do not commit it to public repositories for security reasons.**
 
