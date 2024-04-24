@@ -1,0 +1,57 @@
+# Environment files
+.env
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+dist/
+eggs/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database files
+instance/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# pytest, coverage, and other test artifacts
+.cache/
+.pytest_cache/
+.coverage
+*.cover
+htmlcov/
+
+# Flask stuff
+instance/
+.webassets-cache
+
+# Redis files
+dump.rdb
+
+# Pipenv
+Pipfile.lock
+# Uncomment the following line if you want to ignore Pipfile.lock
+# .venv/
+# venv/
+# ENV/
+
+# Logs
+*.log
+
+# Local databases
+*.db
+*.sql
+
+# If you're using MacOS, you might also want to ignore these:
+.DS_Store
