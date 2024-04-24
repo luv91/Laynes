@@ -119,3 +119,20 @@ Once all services are up, go to the localhost address provided by the developmen
 
 * To exit pipenv's shell environment, simply type `exit`.
 
+## Key Features of the Modular Design
+
+### Component-Based Architecture
+The system employs a component-based architecture where each function such as retrieval, language processing, and memory storage is handled by separate, interchangeable components. This modular design enhances the maintainability and scalability of the system, making it easy to upgrade or replace components without affecting the overall functionality.
+
+### Dynamic Component Selection
+Components are selected dynamically based on the current conversation context. This flexibility allows the system to adapt to different user needs and scenarios effectively, ensuring optimal performance tailored to each conversation's specific requirements.
+
+### Extensible Component Maps
+The use of component maps (`retriever_map`, `llm_map`, `memory_map`) enables easy management and extension of functionalities. Developers can add new capabilities or improve existing ones by simply updating the respective maps without reworking the core logic of the application.
+
+### Streamlined Conversation Management
+The system efficiently manages ongoing conversations by storing and retrieving conversation-specific components, ensuring consistency and relevance throughout the user interaction. This streamlined management supports complex conversational capabilities and enhances user experience.
+
+### Scalable Conversation Components
+The architecture supports scaling individual components as needed. Whether scaling up the language models for more complex processing, or expanding the memory systems for longer or more detailed conversations, each component can be independently adjusted to meet growing demands.
+
