@@ -1,5 +1,6 @@
 # Conversational AI System
 
+![portfolio_ai_conversational_app_block_diagram (2)](https://github.com/luv91/pdf/assets/10795176/2c3c1ad7-38b0-43e7-bf86-15daa4c098f5)
 
 ## Prerequisites
 
