@@ -5,7 +5,19 @@
 
 ## FrontPage of the application
 
+![image](https://github.com/luv91/pdf/assets/10795176/2a0d1a0d-9206-4306-bb30-8bde799d8ee5)
 
+## After Logging in, upload a document
+![image](https://github.com/luv91/pdf/assets/10795176/f5c2c649-de1c-4b0b-b928-a2d87e8717d9)
+
+## After uploading, document would appear in the list of documents (if any already uploaded)
+![image](https://github.com/luv91/pdf/assets/10795176/7357e018-f827-46d4-893c-42421bd6acd4)
+
+## Once uploaded, click View and Start chatting
+
+![image](https://github.com/luv91/pdf/assets/10795176/d71a5542-b04b-460b-858c-d9d6eb2c8b87)
+
+## 
 ## Prerequisites
 
 Before you begin, ensure you have met the following requirements:
