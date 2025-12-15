@@ -12,6 +12,7 @@ from app.web.views import (
     score_views,
     client_views,
     conversation_views,
+    tariff_views,
 )
 
 
@@ -39,6 +40,7 @@ def register_blueprints(app):
     app.register_blueprint(pdf_views.bp)
     app.register_blueprint(score_views.bp)
     app.register_blueprint(conversation_views.bp)
+    app.register_blueprint(tariff_views.bp)
     app.register_blueprint(client_views.bp)
 
 

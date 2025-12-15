@@ -1,0 +1,35 @@
+# Core Flask
+flask>=2.3.0
+flask-sqlalchemy>=3.0.0
+flask-cors>=4.0.0
+werkzeug
+gunicorn
+
+# LangChain & AI
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-openai>=0.2.0
+langgraph>=0.2.0
+langgraph-checkpoint>=2.0.0
+langgraph-checkpoint-sqlite
+openai>=1.0.0
+tiktoken
+
+# Database & Storage
+pinecone>=5.0.0
+langchain-pinecone
+redis>=5.0.0
+
+# Utilities
+python-dotenv
+click
+invoke
+pypdf
+langchain-text-splitters
+backoff
+colorama
+
+# AWS (optional)
+boto3
+botocore
