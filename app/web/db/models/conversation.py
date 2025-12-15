@@ -18,10 +18,10 @@ class Conversation(BaseModel):
     corpus_name: str = db.Column(db.String(80), nullable=True)  # Track which corpus was used
 
     # pdf_id is now nullable for multi_doc mode
-    pdf_id: int = db.Column(db.Integer, db.ForeignKey("pdf.id"), nullable=True)
+    pdf_id: str = db.Column(db.String(), db.ForeignKey("pdf.id"), nullable=True)
     pdf = db.relationship("Pdf", back_populates="conversations")
 
-    user_id: int = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id: str = db.Column(db.String(), db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User", back_populates="conversations")
 
     messages = db.relationship(

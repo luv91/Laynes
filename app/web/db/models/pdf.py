@@ -15,7 +15,7 @@ class Pdf(BaseModel):
     doc_type: str = db.Column(db.String(80), nullable=True) # e.g., "hts_schedule"
 
     # user_id is now nullable for system documents
-    user_id: int = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    user_id: str = db.Column(db.String(), db.ForeignKey("user.id"), nullable=True)
     user = db.relationship("User", back_populates="pdfs")
 
     conversations = db.relationship(
