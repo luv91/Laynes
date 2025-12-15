@@ -1,4 +1,2 @@
 [deploy]
-startCommand = "gunicorn wsgi:app --bind 0.0.0.0:$PORT"
-releaseCommand = "python scripts/populate_tariff_tables.py --reset"
-# trigger rebuild
+startCommand = "python scripts/populate_tariff_tables.py --reset && gunicorn wsgi:app --bind 0.0.0.0:$PORT"
