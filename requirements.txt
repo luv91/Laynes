@@ -4,6 +4,7 @@ flask-sqlalchemy>=3.0.0
 flask-cors>=4.0.0
 werkzeug
 gunicorn
+celery>=5.3.0
 
 # LangChain & AI
 langchain>=0.3.0
