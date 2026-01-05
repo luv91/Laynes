@@ -103,24 +103,19 @@ from app.web.db.models.tariff_tables import (
 
 
 def init_tables(app, reset=False):
-    """Create tariff tables in database."""
+    """Create tariff tables in database.
+
+    v5.1: Use db.drop_all() instead of individual table drops.
+    This properly handles foreign key dependencies and works with
+    both SQLite (local) and PostgreSQL (Railway).
+    """
     with app.app_context():
         if reset:
-            print("Dropping existing tariff tables...")
-            # Drop in reverse dependency order (FKs first)
-            ProgramRate.__table__.drop(db.engine, checkfirst=True)
-            HtsBaseRate.__table__.drop(db.engine, checkfirst=True)
-            CountryGroupMember.__table__.drop(db.engine, checkfirst=True)
-            CountryGroup.__table__.drop(db.engine, checkfirst=True)
-            SourceDocument.__table__.drop(db.engine, checkfirst=True)
-            TariffProgram.__table__.drop(db.engine, checkfirst=True)
-            Section301Inclusion.__table__.drop(db.engine, checkfirst=True)
-            Section301Exclusion.__table__.drop(db.engine, checkfirst=True)
-            Section232Material.__table__.drop(db.engine, checkfirst=True)
-            ProgramCode.__table__.drop(db.engine, checkfirst=True)
-            DutyRule.__table__.drop(db.engine, checkfirst=True)
-            ProductHistory.__table__.drop(db.engine, checkfirst=True)
-            IeepaAnnexIIExclusion.__table__.drop(db.engine, checkfirst=True)
+            print("Dropping ALL existing tables (handles FK dependencies)...")
+            # db.drop_all() drops tables in correct dependency order
+            # and works with PostgreSQL foreign key constraints
+            db.drop_all()
+            print("All tables dropped successfully!")
 
         print("Creating tariff tables...")
         db.create_all()
