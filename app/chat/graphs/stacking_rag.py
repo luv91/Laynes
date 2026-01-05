@@ -26,7 +26,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 
-from app.chat.tools.stacking_tools import STACKING_TOOLS
+from app.chat.tools.stacking_tools import STACKING_TOOLS, get_mfn_base_rate
 
 
 # ============================================================================
@@ -62,6 +62,9 @@ class StackingState(TypedDict):
         slices: Planned slices from plan_entry_slices
         current_slice_idx: Index of slice being processed
         annex_ii_exempt: Whether HTS is Annex II exempt
+        # v7.1: Quantity handling
+        quantity: Piece count for the line item (duplicated across all slices)
+        quantity_uom: Unit of measure for quantity (e.g., "PCS", "KG")
     """
     messages: Annotated[Sequence[BaseMessage], add_messages]
     hts_code: str
@@ -71,6 +74,7 @@ class StackingState(TypedDict):
     import_date: Optional[str]
     materials: Optional[Dict[str, float]]
     materials_needed: bool
+    applicable_materials: Optional[List[str]]  # Dynamic list from database
     programs: List[dict]
     program_results: Dict[str, Any]
     filing_lines: List[dict]
@@ -87,6 +91,9 @@ class StackingState(TypedDict):
     slices: List[dict]
     current_slice_idx: int
     annex_ii_exempt: bool
+    # v7.1: Quantity handling
+    quantity: Optional[int]
+    quantity_uom: Optional[str]
 
 
 # ============================================================================
@@ -150,10 +157,11 @@ def check_materials_node(state: StackingState) -> dict:
     materials = state.get("materials")
 
     # Call ensure_materials tool
+    # FIX: Check for None explicitly, not truthiness - empty dict {} is a valid "no metals" answer
     result = TOOL_MAP["ensure_materials"].invoke({
         "hts_code": hts_code,
         "product_description": product_description,
-        "known_materials": json.dumps(materials) if materials else None
+        "known_materials": json.dumps(materials) if materials is not None else None
     })
 
     data = json.loads(result)
@@ -162,6 +170,7 @@ def check_materials_node(state: StackingState) -> dict:
         return {
             "materials_needed": True,
             "awaiting_user_input": True,
+            "applicable_materials": data.get("applicable_materials", []),  # Pass through from ensure_materials
             "user_question": data.get("suggested_question", "What is the material composition?"),
             "decisions": state.get("decisions", []) + [{
                 "step": "check_materials",
@@ -530,6 +539,9 @@ def build_entry_stacks_node(state: StackingState) -> dict:
     product_value = state.get("product_value", 0)
     annex_ii_exempt = state.get("annex_ii_exempt", False)
     decisions = state.get("decisions", [])
+    # v7.1: Quantity handling
+    quantity = state.get("quantity")
+    quantity_uom = state.get("quantity_uom", "PCS")
 
     entries = []
     all_filing_lines = []
@@ -565,6 +577,9 @@ def build_entry_stacks_node(state: StackingState) -> dict:
             "base_hts_code": hts_code,
             "country_of_origin": country,
             "line_value": slice_value,
+            # v7.1: Quantity duplicated across all slices
+            "quantity": quantity,
+            "quantity_uom": quantity_uom if quantity is not None else None,
             "materials": slice_info.get("materials", {}),
             "stack": []
         }
@@ -586,15 +601,26 @@ def build_entry_stacks_node(state: StackingState) -> dict:
 
             if program_id == "section_301":
                 # Section 301 applies to all slices
+                # v7.0: Get HTS-specific code from section_301_inclusions
                 action = "apply"
-                output = json.loads(TOOL_MAP["get_program_output"].invoke({
+                inclusion_result = json.loads(TOOL_MAP["check_program_inclusion"].invoke({
                     "program_id": program_id,
-                    "action": "apply",
-                    "slice_type": "all"
+                    "hts_code": hts_code
                 }))
-                if output.get("found"):
-                    chapter_99_code = output.get("chapter_99_code")
-                    duty_rate = output.get("duty_rate", 0.25)
+                if inclusion_result.get("included"):
+                    # Use HTS-specific code from inclusion table
+                    chapter_99_code = inclusion_result.get("chapter_99_code")
+                    duty_rate = inclusion_result.get("duty_rate", 0.25)
+                else:
+                    # Fallback to program_codes table
+                    output = json.loads(TOOL_MAP["get_program_output"].invoke({
+                        "program_id": program_id,
+                        "action": "apply",
+                        "slice_type": "all"
+                    }))
+                    if output.get("found"):
+                        chapter_99_code = output.get("chapter_99_code")
+                        duty_rate = output.get("duty_rate", 0.25)
 
             elif program_id == "ieepa_fentanyl":
                 # IEEPA Fentanyl applies to all slices
@@ -610,12 +636,12 @@ def build_entry_stacks_node(state: StackingState) -> dict:
 
             elif program_id == "ieepa_reciprocal":
                 # IEEPA Reciprocal - determine variant
+                import_date = state.get("import_date")
                 variant_result = json.loads(TOOL_MAP["resolve_reciprocal_variant"].invoke({
                     "hts_code": hts_code,
                     "slice_type": slice_type,
-                    "country": country,
                     "us_content_pct": None,
-                    "annex_ii_exempt": annex_ii_exempt
+                    "import_date": import_date
                 }))
                 variant = variant_result.get("variant", "taxable")
                 action = variant_result.get("action", "paid")
@@ -654,21 +680,34 @@ def build_entry_stacks_node(state: StackingState) -> dict:
                     # HTS not on 232 list for this metal - skip entirely
                     continue
 
-                # HTS IS on the 232 list - determine claim vs disclaim
+                # v7.0: Get disclaim_behavior from TariffProgram table
+                from app.chat.tools.stacking_tools import get_disclaim_behavior
+                disclaim_behavior = get_disclaim_behavior(program_id)
+
+                # HTS IS on the 232 list - determine claim vs disclaim based on slice type
                 expected_slice = f"{material}_slice"
                 if slice_type == expected_slice:
+                    # This is the claim slice for this metal
                     action = "claim"
+                    # v7.0: Use HTS-specific claim_code from inclusion data
+                    chapter_99_code = inclusion_result.get("claim_code")
+                    duty_rate = inclusion_result.get("duty_rate", 0)
                 else:
-                    action = "disclaim"
-
-                output = json.loads(TOOL_MAP["get_program_output"].invoke({
-                    "program_id": program_id,
-                    "action": action,
-                    "slice_type": slice_type
-                }))
-                if output.get("found"):
-                    chapter_99_code = output.get("chapter_99_code")
-                    duty_rate = output.get("duty_rate", 0)
+                    # This is NOT the claim slice for this metal
+                    # v7.0: Apply disclaim_behavior
+                    if disclaim_behavior == "required":
+                        # Copper: Must include disclaim code in OTHER slices
+                        action = "disclaim"
+                        chapter_99_code = inclusion_result.get("disclaim_code")
+                        duty_rate = 0
+                    elif disclaim_behavior == "omit":
+                        # Steel/Aluminum: Omit entirely when not claimed (no disclaim line)
+                        continue  # Skip this program for this slice
+                    else:
+                        # Default: use disclaim (backwards compatibility)
+                        action = "disclaim"
+                        chapter_99_code = inclusion_result.get("disclaim_code")
+                        duty_rate = 0
 
             if chapter_99_code:
                 filing_line = {
@@ -685,6 +724,25 @@ def build_entry_stacks_node(state: StackingState) -> dict:
                 entry["stack"].append(filing_line)
                 all_filing_lines.append({**filing_line, "slice_type": slice_type, "line_value": slice_value})
                 sequence += 1
+
+        # Add base HTS code as final line (CBP/ACE requirement)
+        # Per Phoebe's guidance: original HTS must appear as last line in every entry stack
+        mfn_rate = get_mfn_base_rate(hts_code)
+        base_hts_line = {
+            "sequence": sequence,
+            "chapter_99_code": None,  # Not a Chapter 99 code
+            "hts_code": hts_code,     # The base HTS code
+            "program": "Base HTS Classification",
+            "program_id": "base_hts",
+            "action": "classify",
+            "variant": None,
+            "duty_rate": mfn_rate,
+            "applies_to": "full",
+            "material": None,
+            "is_base_hts": True  # Flag to identify this line
+        }
+        entry["stack"].append(base_hts_line)
+        all_filing_lines.append({**base_hts_line, "slice_type": slice_type, "line_value": slice_value})
 
         entries.append(entry)
 
@@ -1043,7 +1101,9 @@ class StackingRAG:
         product_description: str,
         product_value: float,
         materials: Optional[Dict[str, float]] = None,
-        import_date: Optional[str] = None
+        import_date: Optional[str] = None,
+        quantity: Optional[int] = None,
+        quantity_uom: Optional[str] = "PCS"
     ) -> dict:
         """
         Calculate tariff stacking for a product.
@@ -1056,6 +1116,8 @@ class StackingRAG:
             materials: Material composition dict (e.g., {"copper": 0.05, "steel": 0.20})
                        v4.0: Can also be content VALUES (e.g., {"copper": 3000.0})
             import_date: Date of import (YYYY-MM-DD), defaults to today
+            quantity: Piece count for the line item (v7.1, duplicated across all slices)
+            quantity_uom: Unit of measure (e.g., "PCS", "KG"), defaults to "PCS"
 
         Returns:
             Dict with stacking results including:
@@ -1065,7 +1127,18 @@ class StackingRAG:
             - unstacking: IEEPA unstacking audit trail (v4.0)
             - decisions: Audit trail
             - programs: Applicable programs
+
+        Raises:
+            ValueError: If sum of material values exceeds product_value
         """
+        # v7.1: Validate material allocation
+        if materials:
+            material_sum = sum(materials.values())
+            if material_sum > product_value:
+                raise ValueError(
+                    f"Material values (${material_sum:.2f}) exceed product value (${product_value:.2f}). "
+                    f"Sum of material allocations cannot exceed total product value."
+                )
         result = self.graph.invoke(
             {
                 "messages": [],
@@ -1076,6 +1149,7 @@ class StackingRAG:
                 "import_date": import_date,
                 "materials": materials,
                 "materials_needed": False,
+                "applicable_materials": None,  # Populated by check_materials_node
                 "programs": [],
                 "program_results": {},
                 "filing_lines": [],
@@ -1091,7 +1165,10 @@ class StackingRAG:
                 "unstacking": None,
                 "slices": [],
                 "current_slice_idx": 0,
-                "annex_ii_exempt": False
+                "annex_ii_exempt": False,
+                # v7.1: Quantity handling
+                "quantity": quantity,
+                "quantity_uom": quantity_uom
             },
             config=self.config
         )
@@ -1110,7 +1187,9 @@ class StackingRAG:
             "decisions": result.get("decisions", []),
             "programs": result.get("programs", []),
             "awaiting_user_input": result.get("awaiting_user_input", False),
-            "user_question": result.get("user_question")
+            "user_question": result.get("user_question"),
+            # Dynamic materials from database (no hardcoding)
+            "applicable_materials": result.get("applicable_materials", [])
         }
 
     def continue_with_materials(self, materials: Dict[str, float]) -> dict:
@@ -1122,9 +1201,22 @@ class StackingRAG:
 
         Returns:
             Updated stacking results with v4.0 entry slices
+
+        Raises:
+            ValueError: If sum of material values exceeds product_value
         """
         # Get current state and continue
         current_state = self.graph.get_state(self.config)
+        product_value = current_state.values.get("product_value", 0)
+
+        # v7.1: Validate material allocation
+        if materials:
+            material_sum = sum(materials.values())
+            if material_sum > product_value:
+                raise ValueError(
+                    f"Material values (${material_sum:.2f}) exceed product value (${product_value:.2f}). "
+                    f"Sum of material allocations cannot exceed total product value."
+                )
 
         # Update with materials and resume
         result = self.graph.invoke(

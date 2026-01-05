@@ -33,6 +33,9 @@ langchain-pinecone = "*"
 langchain-text-splitters = "*"
 langgraph-checkpoint-sqlite = "*"
 gradio = "*"
+google-genai = "*"
+mcp = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 pytest = "*"

@@ -44,6 +44,11 @@ class TariffProgram(BaseModel):
     v4.1 Update: program_id is no longer unique - same program can apply to multiple countries.
     - Composite unique key on (program_id, country)
     - IEEPA Reciprocal can have entries for China, Germany, UK, etc.
+
+    v7.0 Update: Added disclaim_behavior for Phoebe-aligned ACE filing.
+    - 'required': Copper - must file disclaim code in other slices when applicable but not claimed
+    - 'omit': Steel/Aluminum - omit entirely when not claimed (no disclaim line)
+    - 'none': Non-232 programs - no disclaim concept
     """
     __tablename__ = "tariff_programs"
     __table_args__ = (
@@ -65,6 +70,8 @@ class TariffProgram(BaseModel):
     source_document = db.Column(db.String(256), nullable=True)  # "USTR_301_Notice.pdf"
     effective_date = db.Column(db.Date, nullable=False)
     expiration_date = db.Column(db.Date, nullable=True)  # NULL if still active
+    # v7.0: Disclaim behavior for Phoebe-aligned ACE filing
+    disclaim_behavior = db.Column(db.String(16), default='none')  # 'required', 'omit', 'none'
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -82,6 +89,7 @@ class TariffProgram(BaseModel):
             "source_document": self.source_document,
             "effective_date": self.effective_date.isoformat() if self.effective_date else None,
             "expiration_date": self.expiration_date.isoformat() if self.expiration_date else None,
+            "disclaim_behavior": self.disclaim_behavior,
         }
 
 
@@ -857,4 +865,392 @@ class IngestionRun(BaseModel):
             "status": self.status,
             "error_message": self.error_message,
             "notes": self.notes,
+        }
+
+
+# =============================================================================
+# v9.0: Search Persistence & Vector Caching Models
+# =============================================================================
+
+class GeminiSearchResult(BaseModel):
+    """
+    v9.0: Stores structured JSON output from Gemini searches.
+
+    Caches the results of Gemini MCP searches to avoid redundant API calls.
+    Each search is keyed by (hts_code, query_type, material).
+
+    Cache invalidation:
+    - expires_at: Optional TTL for automatic expiration
+    - is_verified: Human-verified results never expire
+    - was_force_search: Tracks if this replaced a previous cached result
+    """
+    __tablename__ = "gemini_search_results"
+    __table_args__ = (
+        UniqueConstraint('hts_code', 'query_type', 'material', name='uq_gemini_search_result'),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+
+    # Query identification
+    hts_code = db.Column(db.String(20), nullable=False, index=True)
+    query_type = db.Column(db.String(32), nullable=False)  # 'section_232', 'section_301', 'ieepa', etc.
+    material = db.Column(db.String(16), nullable=True)  # 'copper', 'steel', 'aluminum', 'all', null
+
+    # Result data
+    result_json = db.Column(JSON, nullable=False)  # Full Gemini response parsed as JSON
+    raw_response = db.Column(db.Text, nullable=True)  # Original response text (for debugging)
+
+    # Model metadata
+    model_used = db.Column(db.String(64), nullable=False)  # 'gemini-2.5-flash', 'gemini-3-pro-preview'
+    thinking_budget = db.Column(db.Integer, nullable=True)  # null if not using thinking mode
+
+    # Timestamps
+    searched_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)  # Optional TTL for cache invalidation
+
+    # Verification
+    is_verified = db.Column(db.Boolean, default=False)
+    verified_by = db.Column(db.String(100), nullable=True)
+    verified_at = db.Column(db.DateTime, nullable=True)
+    verification_notes = db.Column(db.Text, nullable=True)
+
+    # Force search tracking
+    was_force_search = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    grounding_sources = db.relationship('GroundingSource', backref='search_result', cascade='all, delete-orphan')
+
+    def is_expired(self, as_of: Optional[datetime] = None) -> bool:
+        """Check if cached result has expired."""
+        if self.is_verified:
+            return False  # Verified results never expire
+        if self.expires_at is None:
+            return False  # No expiry set
+        check_time = as_of or datetime.utcnow()
+        return self.expires_at < check_time
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_code": self.hts_code,
+            "query_type": self.query_type,
+            "material": self.material,
+            "result_json": self.result_json,
+            "raw_response": self.raw_response,
+            "model_used": self.model_used,
+            "thinking_budget": self.thinking_budget,
+            "searched_at": self.searched_at.isoformat() if self.searched_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "is_verified": self.is_verified,
+            "verified_by": self.verified_by,
+            "verified_at": self.verified_at.isoformat() if self.verified_at else None,
+            "verification_notes": self.verification_notes,
+            "was_force_search": self.was_force_search,
+            "is_expired": self.is_expired(),
+            "grounding_source_count": len(self.grounding_sources) if self.grounding_sources else 0,
+        }
+
+
+class GroundingSource(BaseModel):
+    """
+    v9.0: Stores URLs/sources that Gemini used for grounding.
+
+    Each Gemini search with Google Search grounding returns a list of
+    source URLs. We store these for:
+    - Audit trail (where did this information come from?)
+    - Content caching (optionally fetch and store page content)
+    - Vector indexing (chunk content for Pinecone)
+
+    Reliability tracking helps prioritize official sources (cbp.gov,
+    federalregister.gov) over unofficial ones.
+    """
+    __tablename__ = "grounding_sources"
+    __table_args__ = (
+        UniqueConstraint('search_result_id', 'url', name='uq_grounding_source_url'),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+
+    # Link to search result
+    search_result_id = db.Column(db.String(36), db.ForeignKey('gemini_search_results.id', ondelete='CASCADE'), nullable=False)
+
+    # Source details
+    url = db.Column(db.Text, nullable=False)
+    domain = db.Column(db.String(255), nullable=True, index=True)  # Extracted domain (cbp.gov, federalregister.gov)
+    title = db.Column(db.Text, nullable=True)  # Page title if available
+    snippet = db.Column(db.Text, nullable=True)  # Relevant excerpt from the page
+
+    # Content for vector indexing
+    fetched_content = db.Column(db.Text, nullable=True)  # Full page content (for chunking)
+    content_hash = db.Column(db.String(64), nullable=True)  # SHA-256 hash to detect changes
+
+    # Timestamps
+    first_seen_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_verified_at = db.Column(db.DateTime, nullable=True)
+
+    # Reliability tracking
+    source_type = db.Column(db.String(32), nullable=True)  # 'official_cbp', 'federal_register', 'csms', 'other'
+    reliability_score = db.Column(db.Numeric(3, 2), nullable=True)  # 0.00 to 1.00
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "search_result_id": self.search_result_id,
+            "url": self.url,
+            "domain": self.domain,
+            "title": self.title,
+            "snippet": self.snippet,
+            "fetched_content": self.fetched_content[:500] if self.fetched_content else None,  # Truncated
+            "content_hash": self.content_hash,
+            "first_seen_at": self.first_seen_at.isoformat() if self.first_seen_at else None,
+            "last_verified_at": self.last_verified_at.isoformat() if self.last_verified_at else None,
+            "source_type": self.source_type,
+            "reliability_score": float(self.reliability_score) if self.reliability_score else None,
+        }
+
+
+class SearchAuditLog(BaseModel):
+    """
+    v9.0: Tracks all search attempts for analytics and debugging.
+
+    Every search request is logged here, including:
+    - Cache hits/misses
+    - Response times
+    - Token usage and cost estimates
+    - Errors and failures
+
+    Use cases:
+    - Monitor API costs over time
+    - Debug slow searches
+    - Analyze cache effectiveness
+    - Track force_search usage
+    """
+    __tablename__ = "search_audit_log"
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+
+    # Request details
+    hts_code = db.Column(db.String(20), nullable=False, index=True)
+    query_type = db.Column(db.String(32), nullable=False)
+    material = db.Column(db.String(16), nullable=True)
+    requested_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    requested_by = db.Column(db.String(100), nullable=True)  # User/system identifier
+
+    # Cache behavior
+    cache_hit = db.Column(db.Boolean, nullable=False)  # Did we use cached result?
+    cache_source = db.Column(db.String(20), nullable=True)  # 'postgres', 'pinecone', 'gemini'
+    force_search = db.Column(db.Boolean, default=False)
+
+    # Response details
+    response_time_ms = db.Column(db.Integer, nullable=True)  # How long the search took
+    model_used = db.Column(db.String(64), nullable=True)
+    success = db.Column(db.Boolean, nullable=False)
+    error_message = db.Column(db.Text, nullable=True)
+
+    # Cost tracking
+    input_tokens = db.Column(db.Integer, nullable=True)
+    output_tokens = db.Column(db.Integer, nullable=True)
+    estimated_cost_usd = db.Column(db.Numeric(10, 6), nullable=True)
+
+    # Link to result (if successful)
+    search_result_id = db.Column(db.String(36), db.ForeignKey('gemini_search_results.id', ondelete='SET NULL'), nullable=True)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_code": self.hts_code,
+            "query_type": self.query_type,
+            "material": self.material,
+            "requested_at": self.requested_at.isoformat() if self.requested_at else None,
+            "requested_by": self.requested_by,
+            "cache_hit": self.cache_hit,
+            "cache_source": self.cache_source,
+            "force_search": self.force_search,
+            "response_time_ms": self.response_time_ms,
+            "model_used": self.model_used,
+            "success": self.success,
+            "error_message": self.error_message,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "estimated_cost_usd": float(self.estimated_cost_usd) if self.estimated_cost_usd else None,
+            "search_result_id": self.search_result_id,
+        }
+
+
+# =============================================================================
+# v9.2: Evidence-First Citations
+# =============================================================================
+
+class NeedsReviewQueue(BaseModel):
+    """
+    v10.0: Queue for unverified LLM responses awaiting human/system review.
+
+    When Gemini returns a scope determination, it goes here FIRST instead
+    of being treated as truth. The response must pass through:
+    1. Write Gate (mechanical proof checks)
+    2. Validator LLM (semantic verification)
+    3. Human review (for high-stakes decisions)
+
+    Only after validation does the assertion move to verified_assertion.
+
+    This breaks the "cache LLM conclusion as truth" anti-pattern.
+
+    Status flow:
+    - pending: Awaiting review
+    - validated: Passed Write Gate + Validator, ready to promote
+    - rejected: Failed validation, will not be promoted
+    - needs_human: Requires human review (edge cases, conflicts)
+    """
+    __tablename__ = "needs_review_queue"
+    __table_args__ = (
+        db.Index('idx_review_queue_status', 'status', 'created_at'),
+        db.Index('idx_review_queue_hts', 'hts_code', 'query_type'),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+
+    # Query context
+    hts_code = db.Column(db.String(20), nullable=False, index=True)
+    query_type = db.Column(db.String(32), nullable=False)  # 'section_232', 'section_301'
+    material = db.Column(db.String(20), nullable=True)  # 'copper', 'steel', 'aluminum'
+
+    # Link to the raw Gemini response
+    search_result_id = db.Column(db.String(36), db.ForeignKey('gemini_search_results.id', ondelete='CASCADE'), nullable=True)
+
+    # LLM outputs (stored for debugging)
+    reader_output = db.Column(JSON, nullable=True)  # Future: Reader LLM response
+    validator_output = db.Column(JSON, nullable=True)  # Future: Validator LLM response
+
+    # Blocking reason
+    block_reason = db.Column(db.Text, nullable=False)  # Why it was queued
+    block_details = db.Column(JSON, nullable=True)  # Detailed failure info
+
+    # Review status
+    status = db.Column(db.String(20), default='pending')  # pending, validated, rejected, needs_human
+    priority = db.Column(db.Integer, default=0)  # Higher = more urgent
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    # Reviewer info
+    reviewed_by = db.Column(db.String(100), nullable=True)  # Human or 'validator_llm'
+    resolution_notes = db.Column(db.Text, nullable=True)
+
+    # Relationship
+    search_result = db.relationship('GeminiSearchResult', backref='review_queue_entries')
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_code": self.hts_code,
+            "query_type": self.query_type,
+            "material": self.material,
+            "search_result_id": self.search_result_id,
+            "reader_output": self.reader_output,
+            "validator_output": self.validator_output,
+            "block_reason": self.block_reason,
+            "block_details": self.block_details,
+            "status": self.status,
+            "priority": self.priority,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "reviewed_by": self.reviewed_by,
+            "resolution_notes": self.resolution_notes,
+        }
+
+
+class EvidenceQuote(BaseModel):
+    """
+    v9.2: Normalized citations extracted from Gemini responses.
+
+    Each citation represents a piece of evidence that Gemini used to make
+    a scope determination. These are the "proofs" - verbatim quotes from
+    official sources that justify the in_scope determination.
+
+    Key differences from GroundingSource:
+    - GroundingSource: URLs Gemini observed during search (Layer 1)
+    - EvidenceQuote: Specific quoted text Gemini cited as proof (Layer 2)
+
+    Business validation:
+    - If in_scope=True, must have at least one EvidenceQuote with quoted_text
+    - quoted_text should contain the HTS code (enforced as warning)
+
+    Trust model:
+    - quote_verified=False: Gemini's claim (not yet verified)
+    - quote_verified=True: Quote confirmed to exist in source URL
+    - url_in_grounding_metadata=True: URL was in Google's grounding (higher trust)
+    """
+    __tablename__ = "evidence_quotes"
+    __table_args__ = (
+        db.Index('idx_evidence_quote_hts', 'hts_code', 'program_id', 'material'),
+        db.Index('idx_evidence_quote_search', 'search_result_id'),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+
+    # Link to search result
+    search_result_id = db.Column(db.String(36), db.ForeignKey('gemini_search_results.id', ondelete='CASCADE'), nullable=False)
+
+    # Context
+    program_id = db.Column(db.String(50), nullable=False)  # 'section_232', 'section_301'
+    material = db.Column(db.String(20), nullable=True)  # 'copper', 'steel', 'aluminum', null
+    hts_code = db.Column(db.String(20), nullable=False, index=True)
+
+    # Decision
+    in_scope = db.Column(db.Boolean, nullable=True)  # true/false/null (null = unknown)
+    claim_code = db.Column(db.String(20), nullable=True)
+    disclaim_code = db.Column(db.String(20), nullable=True)
+
+    # Citation details
+    source_url = db.Column(db.Text, nullable=True)
+    source_domain = db.Column(db.String(255), nullable=True, index=True)
+    source_title = db.Column(db.Text, nullable=True)
+    source_document = db.Column(db.String(255), nullable=True)  # 'CSMS #65936570'
+    effective_date = db.Column(db.Date, nullable=True)
+    location_hint = db.Column(db.Text, nullable=True)  # 'Table row: 8544.42.90'
+    evidence_type = db.Column(db.String(50), nullable=True)  # 'table', 'paragraph', 'bullet', 'scope_statement'
+
+    # The proof - verbatim quote from the source
+    quoted_text = db.Column(db.Text, nullable=True)
+    quote_hash = db.Column(db.String(64), nullable=True)  # SHA-256 of quoted_text for deduplication
+
+    # Verification status
+    quote_verified = db.Column(db.Boolean, default=False)  # Has quote been verified to exist in source?
+    verified_at = db.Column(db.DateTime, nullable=True)
+    verification_method = db.Column(db.String(50), nullable=True)  # 'substring', 'pdf_extract', 'manual'
+
+    # Trust signal
+    url_in_grounding_metadata = db.Column(db.Boolean, default=False)  # Was URL in Google's grounding?
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationship
+    search_result = db.relationship('GeminiSearchResult', backref='evidence_quotes_rel')
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "search_result_id": self.search_result_id,
+            "program_id": self.program_id,
+            "material": self.material,
+            "hts_code": self.hts_code,
+            "in_scope": self.in_scope,
+            "claim_code": self.claim_code,
+            "disclaim_code": self.disclaim_code,
+            "source_url": self.source_url,
+            "source_domain": self.source_domain,
+            "source_title": self.source_title,
+            "source_document": self.source_document,
+            "effective_date": self.effective_date.isoformat() if self.effective_date else None,
+            "location_hint": self.location_hint,
+            "evidence_type": self.evidence_type,
+            "quoted_text": self.quoted_text,
+            "quote_hash": self.quote_hash,
+            "quote_verified": self.quote_verified,
+            "verified_at": self.verified_at.isoformat() if self.verified_at else None,
+            "verification_method": self.verification_method,
+            "url_in_grounding_metadata": self.url_in_grounding_metadata,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

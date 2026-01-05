@@ -15,6 +15,13 @@ Tool Call Sequence (per README5.md):
    - resolve_program_dependencies() - For IEEPA reciprocal, check 232 claims
    - get_program_output() - Get Chapter 99 code and duty rate
 3. calculate_duties() - Final calculation with all applicable programs
+
+v7.0 Update (Jan 2026) - Phoebe-Aligned ACE Filing:
+- Added disclaim_behavior lookup from TariffProgram table
+- Copper (disclaim_behavior='required'): Must file disclaim code in OTHER slices
+- Steel/Aluminum (disclaim_behavior='omit'): Omit entirely when not claimed
+- Uses HTS-specific claim_codes from section_232_materials table
+- 301 codes come from section_301_inclusions, not program_codes
 """
 
 import os
@@ -256,6 +263,31 @@ def check_program_country_scope(
 
 
 # ============================================================================
+# v7.0: Disclaim Behavior Lookup
+# ============================================================================
+
+def get_disclaim_behavior(program_id: str) -> str:
+    """
+    v7.0: Get the disclaim behavior for a program from the TariffProgram table.
+
+    Returns:
+        'required' - Copper: Must file disclaim code in other slices when applicable
+        'omit' - Steel/Aluminum: Omit entirely when not claimed (no disclaim line)
+        'none' - Non-232 programs: No disclaim concept
+    """
+    app = get_flask_app()
+    with app.app_context():
+        models = get_models()
+        TariffProgram = models["TariffProgram"]
+
+        # Query by program_id (get any entry since disclaim_behavior is same for all countries)
+        program = TariffProgram.query.filter_by(program_id=program_id).first()
+        if program and hasattr(program, 'disclaim_behavior') and program.disclaim_behavior:
+            return program.disclaim_behavior
+        return 'none'
+
+
+# ============================================================================
 # v5.0: Country-Specific Rate Lookup Functions
 # ============================================================================
 
@@ -492,6 +524,17 @@ def ensure_materials(hts_code: str, product_description: str, known_materials: O
         if known_materials:
             try:
                 parsed = json.loads(known_materials) if isinstance(known_materials, str) else known_materials
+
+                # FIX: If user explicitly passed empty dict {}, they're saying "no 232 metals to claim"
+                # This is a valid answer - proceed without 232 claims as a full product
+                if isinstance(parsed, dict) and len(parsed) == 0:
+                    return json.dumps({
+                        "materials_needed": False,
+                        "reason": "User indicated no Section 232 materials to claim",
+                        "materials": {},
+                        "explicit_no_claim": True
+                    })
+
                 # Check if we have info for all applicable materials
                 missing = [m for m in applicable_materials if m not in parsed]
                 if not missing:
@@ -1920,11 +1963,32 @@ def build_entry_stack(
                 # HTS is NOT on the 232 list for this metal - skip entirely
                 continue
 
-            # HTS IS on the 232 list - determine claim vs disclaim
+            # v7.0: Get disclaim_behavior from TariffProgram table
+            disclaim_behavior = get_disclaim_behavior(program_id)
+
+            # HTS IS on the 232 list - determine claim vs disclaim based on slice type
             if slice_type == f"{metal}_slice":
+                # This is the claim slice for this metal
                 action = "claim"
+                # Use HTS-specific claim_code from inclusion data
+                chapter_99_code = inclusion_data.get("claim_code")
+                duty_rate = inclusion_data.get("duty_rate")
             else:
-                action = "disclaim"
+                # This is NOT the claim slice for this metal
+                # v7.0: Apply disclaim_behavior
+                if disclaim_behavior == "required":
+                    # Copper: Must include disclaim code in OTHER slices
+                    action = "disclaim"
+                    chapter_99_code = inclusion_data.get("disclaim_code")
+                    duty_rate = 0.0
+                elif disclaim_behavior == "omit":
+                    # Steel/Aluminum: Omit entirely when not claimed (no disclaim line)
+                    continue  # Skip this program for this slice
+                else:
+                    # Default: use disclaim (backwards compatibility)
+                    action = "disclaim"
+                    chapter_99_code = inclusion_data.get("disclaim_code")
+                    duty_rate = 0.0
             variant = None
 
         # Skip if no action determined

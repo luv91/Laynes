@@ -56,11 +56,13 @@ def calculate_tariff():
             # Check if we need materials
             if result.get("awaiting_user_input"):
                 _sessions[session_id] = rag
+                applicable_materials = result.get("applicable_materials", [])
                 return jsonify({
                     "success": True,
                     "session_id": session_id,
                     "needs_materials": True,
-                    "message": "This HTS code may contain Section 232 metals. Please enter the material values.",
+                    "applicable_materials": applicable_materials,  # Only show these in the UI
+                    "message": f"This HTS code may contain Section 232 metals ({', '.join(applicable_materials)}). Please enter the material values.",
                     "entries": [],
                     "total_duty": None
                 })
@@ -275,6 +277,16 @@ CALCULATOR_HTML = '''
             font-size: 14px;
         }
         .stack-item:last-child { border-bottom: none; }
+        .stack-item.base-hts {
+            background: #f8fafc;
+            border-top: 1px dashed #cbd5e1;
+            margin-top: 4px;
+            padding-top: 10px;
+        }
+        .stack-item.base-hts .stack-code {
+            background: #1e293b;
+            color: white;
+        }
         .stack-code {
             font-family: 'SF Mono', Monaco, monospace;
             background: #e2e8f0;
@@ -460,7 +472,7 @@ CALCULATOR_HTML = '''
                     </div>
                     <div class="form-group">
                         <label>Product Value (USD)</label>
-                        <input type="number" id="productValue" value="10000" min="1" required>
+                        <input type="number" id="productValue" value="10000" min="1" step="any" required>
                         <div class="hint">Total declared value</div>
                     </div>
                 </div>
@@ -476,16 +488,16 @@ CALCULATOR_HTML = '''
                         </div>
                         <div class="hint" id="materialsHint">Enter as percentage of product value (e.g., 30 = 30%)</div>
                     </div>
-                    <div class="materials-row">
-                        <div class="form-group">
+                    <div class="materials-row" id="materialsRow">
+                        <div class="form-group" id="copperGroup" style="display: none;">
                             <label id="copperLabel">Copper (%)</label>
                             <input type="number" id="copperValue" placeholder="0" min="0" step="any">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="steelGroup" style="display: none;">
                             <label id="steelLabel">Steel (%)</label>
                             <input type="number" id="steelValue" placeholder="0" min="0" step="any">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="aluminumGroup" style="display: none;">
                             <label id="aluminumLabel">Aluminum (%)</label>
                             <input type="number" id="aluminumValue" placeholder="0" min="0" step="any">
                         </div>
@@ -612,6 +624,30 @@ CALCULATOR_HTML = '''
                 let steel = parseFloat(document.getElementById('steelValue').value) || 0;
                 let aluminum = parseFloat(document.getElementById('aluminumValue').value) || 0;
 
+                // v7.1: Validate materials before conversion
+                if (materialsMode === 'percentage') {
+                    // Validate percentages don't exceed 100%
+                    if (copper > 100 || steel > 100 || aluminum > 100) {
+                        document.getElementById('error').textContent = 'Individual material percentages cannot exceed 100%';
+                        document.getElementById('error').classList.add('show');
+                        return;
+                    }
+                    const totalPct = copper + steel + aluminum;
+                    if (totalPct > 100) {
+                        document.getElementById('error').textContent = `Total material percentage (${totalPct}%) cannot exceed 100%`;
+                        document.getElementById('error').classList.add('show');
+                        return;
+                    }
+                } else {
+                    // Value mode: validate total doesn't exceed product value
+                    const totalValue = copper + steel + aluminum;
+                    if (totalValue > productValue) {
+                        document.getElementById('error').textContent = `Total material value ($${totalValue.toLocaleString()}) cannot exceed product value ($${productValue.toLocaleString()})`;
+                        document.getElementById('error').classList.add('show');
+                        return;
+                    }
+                }
+
                 // Convert percentage to value if in percentage mode
                 if (materialsMode === 'percentage') {
                     copper = copper > 0 ? (copper / 100) * productValue : 0;
@@ -653,6 +689,18 @@ CALCULATOR_HTML = '''
                     sessionId = result.session_id;
                     lastHtsCode = htsCode;
                     lastCountry = country;
+
+                    // Show only applicable materials (hide all first, then show only applicable)
+                    document.getElementById('copperGroup').style.display = 'none';
+                    document.getElementById('steelGroup').style.display = 'none';
+                    document.getElementById('aluminumGroup').style.display = 'none';
+
+                    const applicableMaterials = result.applicable_materials || [];
+                    applicableMaterials.forEach(mat => {
+                        const groupEl = document.getElementById(mat + 'Group');
+                        if (groupEl) groupEl.style.display = 'block';
+                    });
+
                     document.getElementById('materialsSection').classList.add('show');
                     document.getElementById('submitBtn').textContent = 'Calculate with Materials';
                     return;
@@ -721,7 +769,23 @@ CALCULATOR_HTML = '''
             const entriesHtml = (result.entries || []).map(entry => {
                 const stackHtml = (entry.stack || []).map(line => {
                     const actionClass = line.action.toLowerCase();
-                    const rate = line.duty_rate ? (line.duty_rate * 100).toFixed(0) + '%' : '0%';
+                    const rate = line.duty_rate ? (line.duty_rate * 100).toFixed(1) + '%' : '0%';
+
+                    // Check if this is the base HTS line (CBP requirement: base HTS as final line)
+                    if (line.is_base_hts) {
+                        return `
+                            <div class="stack-item base-hts">
+                                <span>
+                                    <span class="stack-code">${line.hts_code}</span>
+                                    Base HTS
+                                </span>
+                                <span>
+                                    <span style="color: #64748b; margin-right: 8px;">${rate} MFN</span>
+                                </span>
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="stack-item">
                             <span>

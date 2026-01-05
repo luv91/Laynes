@@ -13,14 +13,22 @@ Usage:
 To reset tables:
     pipenv run python scripts/populate_tariff_tables.py --reset
 
-TARIFF RATES (December 2025):
+TARIFF RATES (January 2026 - Updated per 90 FR 10524):
 - Base Duty (HTS 8544.42.90.90): 2.6%
 - Section 301 (List 3): 25%
 - Section 232 Steel: 50% (default), 25% (UK exception)
-- Section 232 Aluminum: 50% (default), 25% (UK exception)
+- Section 232 Aluminum: 50% (default), 25% (UK exception) - UPDATED June 4, 2025
 - Section 232 Copper: 50% (all countries)
 - IEEPA Fentanyl: 10% (reduced Nov 2025 from 20%)
 - IEEPA Reciprocal: 10% (default), formula for EU (15% - MFN)
+
+HTS SCOPE (per CSMS #65936615, #65936570, #65794272, Federal Register 90 FR 40326):
+- 8544.42.2000: Copper ONLY (Note 36)
+- 8544.42.9090: Copper + Aluminum (Notes 36 + 19k) - NO steel
+- 9403.99.9045: Steel + Aluminum (Notes 16n + 19k)
+- 8473.30.5100: Aluminum only (Note 19k)
+- 8536.90.8585: Aluminum only (Note 19k)
+- 8539.50.0000: OUT OF SCOPE (removed)
 
 Phase 6 Update (Dec 2025):
 - Content-value-based duties: 232 duty calculated on material $ value, not percentage
@@ -41,6 +49,15 @@ v5.0 Update (Dec 2025):
 - MFN base rates table for formula calculations
 - Source document audit trail with change detection
 - Country groups: EU, UK, CN with member mappings
+
+v7.0 Update (Jan 2026) - Phoebe-Aligned ACE Filing:
+- Added disclaim_behavior to TariffProgram: 'required', 'omit', 'none'
+  - Copper: 'required' - must file disclaim code in other slices when applicable
+  - Steel/Aluminum: 'omit' - omit entirely when not claimed (no disclaim line)
+- Added Phoebe example HTS codes with correct claim_codes:
+  - 9403.99.9045 (furniture parts) - steel uses derivative code 9903.81.91
+  - 8536.90.8585 (electrical switches) - List 1 with 9903.88.01
+  - 8473.30.5100 (computer parts) - Annex II exempt with 9903.88.69
 
 Sources:
 - USTR Section 301: https://ustr.gov/issue-areas/enforcement/section-301-investigations/tariff-actions
@@ -194,6 +211,7 @@ def populate_tariff_programs(app):
         },
         # Section 232 - Copper (applies to ALL countries)
         # Note: 232 programs calculate BEFORE ieepa_reciprocal for unstacking
+        # v7.0: disclaim_behavior='required' - must file disclaim code in other slices
         {
             "program_id": "section_232_copper",
             "program_name": "Section 232 Copper",
@@ -208,8 +226,10 @@ def populate_tariff_programs(app):
             "source_document": "Section_232_Copper_Proclamation.pdf",
             "effective_date": date(2020, 1, 1),
             "expiration_date": None,
+            "disclaim_behavior": "required",  # v7.0: Must include disclaim code in other slices
         },
         # Section 232 - Steel (applies to ALL countries)
+        # v7.0: disclaim_behavior='omit' - omit entirely when not claimed
         {
             "program_id": "section_232_steel",
             "program_name": "Section 232 Steel",
@@ -224,8 +244,10 @@ def populate_tariff_programs(app):
             "source_document": "Section_232_Steel_Proclamation.pdf",
             "effective_date": date(2018, 3, 23),
             "expiration_date": None,
+            "disclaim_behavior": "omit",  # v7.0: Omit entirely when not claimed
         },
         # Section 232 - Aluminum (applies to ALL countries)
+        # v7.0: disclaim_behavior='omit' - omit entirely when not claimed
         {
             "program_id": "section_232_aluminum",
             "program_name": "Section 232 Aluminum",
@@ -240,6 +262,7 @@ def populate_tariff_programs(app):
             "source_document": "Section_232_Aluminum_Proclamation.pdf",
             "effective_date": date(2018, 3, 23),
             "expiration_date": None,
+            "disclaim_behavior": "omit",  # v7.0: Omit entirely when not claimed
         },
         # IEEPA Reciprocal - depends on Section 232 claims for unstacking
         # filing_sequence=3 (display after Fentanyl)
@@ -418,6 +441,17 @@ def populate_section_301_inclusions(app):
         {"hts_8digit": "84713000", "list_name": "list_2", "chapter_99_code": "9903.88.02", "duty_rate": 0.25, "source_doc": "301_List_2.pdf"},
         {"hts_8digit": "84714100", "list_name": "list_1", "chapter_99_code": "9903.88.01", "duty_rate": 0.25, "source_doc": "301_List_1.pdf"},
         {"hts_8digit": "90138000", "list_name": "list_4a", "chapter_99_code": "9903.88.15", "duty_rate": 0.075, "source_doc": "301_List_4A.pdf"},
+
+        # v7.0: Phoebe example HTS codes
+        # TC-v7.0-001, TC-v7.0-005: Furniture parts (steel + aluminum) - List 3
+        {"hts_8digit": "94039990", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "301_List_3.pdf"},
+        # TC-v7.0-002, TC-v7.0-004: Insulated conductors (copper + aluminum) - already covered by 85444290
+        # TC-v7.0-003: Electrical switches (no 232 metals) - List 1
+        {"hts_8digit": "85369085", "list_name": "list_1", "chapter_99_code": "9903.88.01", "duty_rate": 0.25, "source_doc": "301_List_1.pdf"},
+        # TC-v7.0-006: Computer parts (Annex II example) - different list with 9903.88.69
+        {"hts_8digit": "84733051", "list_name": "list_other", "chapter_99_code": "9903.88.69", "duty_rate": 0.25, "source_doc": "301_List_Other.pdf"},
+        # Additional 10-digit variant for 8544.42.2000 (copper full claim example)
+        {"hts_8digit": "85444220", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "301_List_3.pdf"},
     ]
 
     with app.app_context():
@@ -484,24 +518,29 @@ def populate_section_232_materials(app):
 
     Source: CBP CSMS #65794272 (July 31, 2025), Proclamations 10895/10896
     """
-    # REAL 2025 RATES (as of Dec 2025):
-    # - Steel: 50% (increased from 25% per Proclamation 10895)
-    # - Aluminum: 25% (increased from 10% per Proclamation 10896)
-    # - Copper: 50% (increased from 25% per CBP CSMS July 2025)
+    # REAL 2025/2026 RATES (Updated per 90 FR 10524, June 4, 2025):
+    # - Steel: 50% (default), 25% (UK exception)
+    # - Aluminum: 50% (default), 25% (UK exception) - DOUBLED from 25% on June 4, 2025
+    # - Copper: 50% (all countries)
     #
     # Content-Value-Based Duties:
     # - CBP now requires duty on material content VALUE, not percentage
     # - Line splitting: 2 lines per material (non-material + material content)
     # - split_policy='if_any_content' means split whenever content > 0 and < total
+    # CORRECTED HTS SCOPE per Federal Register 90 FR 40326, CSMS #65794272, #65936615, #65936570
+    # ALL rates updated to 50% per Presidential Proclamation 90 FR 10524 (June 4, 2025)
     materials = [
-        # USB-C cables (8544.42.90) - contain copper, steel, aluminum
+        # =================================================================
+        # 8544.42.9090 - Insulated wire/cable (>80V): Copper + Aluminum (NO steel)
+        # Authority: CSMS #65794272 (Note 36) + CSMS #65936615 (Note 19k)
+        # =================================================================
         {
             "hts_8digit": "85444290",
             "material": "copper",
             "claim_code": "9903.78.01",
             "disclaim_code": "9903.78.02",
             "duty_rate": 0.50,  # 50% as of July 2025
-            "threshold_percent": None,  # Not used with content_value basis
+            "threshold_percent": None,
             "source_doc": "CSMS_65794272_Copper_July2025.pdf",
             "content_basis": "value",
             "quantity_unit": "kg",
@@ -510,57 +549,109 @@ def populate_section_232_materials(app):
         },
         {
             "hts_8digit": "85444290",
-            "material": "steel",
-            "claim_code": "9903.80.01",
-            "disclaim_code": "9903.80.02",
-            "duty_rate": 0.50,
-            "threshold_percent": None,
-            "source_doc": "232_Steel_Proclamation_10895.pdf",
-            "content_basis": "value",
-            "quantity_unit": "kg",
-            "split_policy": "if_any_content",
-            "split_threshold_pct": None,
-        },
-        {
-            "hts_8digit": "85444290",
             "material": "aluminum",
             "claim_code": "9903.85.08",
             "disclaim_code": "9903.85.09",
-            "duty_rate": 0.25,
+            "duty_rate": 0.50,  # UPDATED: 50% per 90 FR 10524 (June 4, 2025)
             "threshold_percent": None,
-            "source_doc": "232_Aluminum_Proclamation_10896.pdf",
+            "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf",
             "content_basis": "value",
             "quantity_unit": "kg",
             "split_policy": "if_any_content",
             "split_threshold_pct": None,
         },
-        # LED lamps
+        # NOTE: Steel REMOVED from 85444290 - not in scope per CSMS #65936570
+
+        # =================================================================
+        # 9403.99.9045 - Furniture parts: Steel + Aluminum
+        # Authority: CSMS #65936570 (Note 16n) + CSMS #65936615 (Note 19k)
+        # =================================================================
         {
-            "hts_8digit": "85395000",
-            "material": "aluminum",
-            "claim_code": "9903.85.08",
-            "disclaim_code": "9903.85.09",
-            "duty_rate": 0.25,
-            "threshold_percent": None,
-            "source_doc": "232_Aluminum_Proclamation_10896.pdf",
-            "content_basis": "value",
-            "quantity_unit": "kg",
-            "split_policy": "if_any_content",
-            "split_threshold_pct": None,
-        },
-        {
-            "hts_8digit": "85395000",
+            "hts_8digit": "94039990",
             "material": "steel",
-            "claim_code": "9903.80.01",
+            "claim_code": "9903.81.91",  # Derivative steel code per Phoebe
             "disclaim_code": "9903.80.02",
             "duty_rate": 0.50,
             "threshold_percent": None,
-            "source_doc": "232_Steel_Proclamation_10895.pdf",
+            "source_doc": "CSMS_65936570_Steel_Aug2025.pdf",
             "content_basis": "value",
             "quantity_unit": "kg",
             "split_policy": "if_any_content",
             "split_threshold_pct": None,
         },
+        {
+            "hts_8digit": "94039990",
+            "material": "aluminum",
+            "claim_code": "9903.85.08",
+            "disclaim_code": "9903.85.09",
+            "duty_rate": 0.50,  # UPDATED: 50% per 90 FR 10524 (June 4, 2025)
+            "threshold_percent": None,
+            "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf",
+            "content_basis": "value",
+            "quantity_unit": "kg",
+            "split_policy": "if_any_content",
+            "split_threshold_pct": None,
+        },
+
+        # =================================================================
+        # 8544.42.2000 - Insulated copper wire (≤80V): Copper ONLY
+        # Authority: CSMS #65794272 (Note 36)
+        # NOTE: Aluminum REMOVED - Phoebe example confirms copper only
+        # =================================================================
+        {
+            "hts_8digit": "85444220",
+            "material": "copper",
+            "claim_code": "9903.78.01",
+            "disclaim_code": "9903.78.02",
+            "duty_rate": 0.50,
+            "threshold_percent": None,
+            "source_doc": "CSMS_65794272_Copper_July2025.pdf",
+            "content_basis": "value",
+            "quantity_unit": "kg",
+            "split_policy": "if_any_content",
+            "split_threshold_pct": None,
+        },
+
+        # =================================================================
+        # 8473.30.5100 - Computer parts: Aluminum ONLY
+        # Authority: CSMS #65936615 (Note 19k)
+        # Also Annex II exempt (IEEPA Reciprocal)
+        # =================================================================
+        {
+            "hts_8digit": "84733051",
+            "material": "aluminum",
+            "claim_code": "9903.85.08",
+            "disclaim_code": "9903.85.09",
+            "duty_rate": 0.50,  # UPDATED: 50% per 90 FR 10524 (June 4, 2025)
+            "threshold_percent": None,
+            "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf",
+            "content_basis": "value",
+            "quantity_unit": "kg",
+            "split_policy": "if_any_content",
+            "split_threshold_pct": None,
+        },
+
+        # =================================================================
+        # 8536.90.8585 - Electrical apparatus parts: Aluminum ONLY (NEW)
+        # Authority: CSMS #65936615 (Note 19k)
+        # Added per Phoebe disclaim example TC-v7.0-003
+        # =================================================================
+        {
+            "hts_8digit": "85369085",
+            "material": "aluminum",
+            "claim_code": "9903.85.08",
+            "disclaim_code": "9903.85.09",
+            "duty_rate": 0.50,  # 50% per 90 FR 10524 (June 4, 2025)
+            "threshold_percent": None,
+            "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf",
+            "content_basis": "value",
+            "quantity_unit": "kg",
+            "split_policy": "if_any_content",
+            "split_threshold_pct": None,
+        },
+
+        # NOTE: 8539.50.0000 (LED lamps) REMOVED - out of Section 232 scope
+        # per Federal Register 90 FR 40326 and CSMS derivative lists
     ]
 
     with app.app_context():
@@ -601,13 +692,13 @@ def populate_program_codes(app):
     - claim: on own metal slice (e.g., copper_slice for 232 Copper)
     - disclaim: on all other slices (non_metal, other metals)
 
-    REAL 2025 RATES (as of Dec 2025):
+    REAL 2025/2026 RATES (Updated per 90 FR 10524, June 4, 2025):
     - Section 301: 25% (unchanged)
     - IEEPA Fentanyl: 10% (reduced from 20% on Nov 10, 2025)
     - IEEPA Reciprocal: 10% (taxable), 0% (exempt variants)
-    - Section 232 Copper: 50% (increased July 2025)
-    - Section 232 Steel: 50% (increased March 2025)
-    - Section 232 Aluminum: 25% (increased March 2025)
+    - Section 232 Copper: 50%
+    - Section 232 Steel: 50% (default), 25% (UK exception)
+    - Section 232 Aluminum: 50% (default), 25% (UK exception) - DOUBLED June 2025
     """
     codes = [
         # ===================================================================
@@ -697,24 +788,24 @@ def populate_program_codes(app):
          "source_doc": "232_Steel_Proclamation_10895.pdf"},
 
         # ===================================================================
-        # Section 232 Aluminum - 25%
+        # Section 232 Aluminum - 50% (UPDATED per 90 FR 10524, June 4, 2025)
         # Claim on aluminum_slice, Disclaim on non_metal and other metals
         # ===================================================================
         {"program_id": "section_232_aluminum", "action": "claim", "variant": None, "slice_type": "aluminum_slice",
-         "chapter_99_code": "9903.85.08", "duty_rate": 0.25, "applies_to": "partial",
-         "source_doc": "232_Aluminum_Proclamation_10896.pdf"},
+         "chapter_99_code": "9903.85.08", "duty_rate": 0.50, "applies_to": "partial",
+         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
         {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "non_metal",
          "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Aluminum_Proclamation_10896.pdf"},
+         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
         {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "copper_slice",
          "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Aluminum_Proclamation_10896.pdf"},
+         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
         {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "steel_slice",
          "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Aluminum_Proclamation_10896.pdf"},
+         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
         {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "full",
          "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "232_Aluminum_Proclamation_10896.pdf"},
+         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
     ]
 
     with app.app_context():
@@ -856,6 +947,11 @@ def populate_annex_ii_exclusions(app):
         # Plasmids (our UK test case)
         {"hts_code": "293499", "description": "Other heterocyclic compounds, nucleic acid-based",
          "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
+         "effective_date": date(2024, 1, 1), "expiration_date": None},
+
+        # v7.0: Phoebe example TC-v7.0-006 - Computer parts exempt from IEEPA Reciprocal
+        {"hts_code": "84733051", "description": "Parts of ADP machines, printed circuit assemblies",
+         "category": "semiconductor", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
          "effective_date": date(2024, 1, 1), "expiration_date": None},
     ]
 
@@ -1141,12 +1237,13 @@ def populate_program_rates(app):
         },
 
         # ===================================================================
-        # Section 232 Aluminum (25% default, 25% UK - same rate)
+        # Section 232 Aluminum - 50% (UPDATED per 90 FR 10524, June 4, 2025)
+        # UK exception stays at 25%
         # ===================================================================
         {
             "program_id": "section_232_aluminum",
             "group_id": "default",
-            "rate": 0.25,  # Fixed: Aluminum is 25% not 50%
+            "rate": 0.50,  # UPDATED: 50% per 90 FR 10524 (June 4, 2025)
             "rate_type": "fixed",
             "rate_formula": None,
             "effective_date": date(2025, 6, 4),
@@ -1155,7 +1252,7 @@ def populate_program_rates(app):
         {
             "program_id": "section_232_aluminum",
             "group_id": "UK",
-            "rate": 0.25,
+            "rate": 0.25,  # UK exception stays at 25%
             "rate_type": "fixed",
             "rate_formula": None,
             "effective_date": date(2025, 6, 4),
