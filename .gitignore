@@ -56,3 +56,12 @@ Pipfile.lock
 
 # If you're using MacOS, you might also want to ignore these:
 .DS_Store
+
+# Personal research files (not for version control)
+Personal_Research/
+
+# Documentation files (local only)
+docs/
+
+# Excel temp files
+~$*
