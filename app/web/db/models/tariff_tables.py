@@ -99,6 +99,9 @@ class Section301Inclusion(BaseModel):
 
     If an HTS 8-digit prefix is in this table, Section 301 tariffs apply
     (unless there's a matching exclusion).
+
+    NOTE: This is the LEGACY table (static). For temporal rate tracking,
+    use Section301Rate which supports effective_start/effective_end dates.
     """
     __tablename__ = "section_301_inclusions"
     __table_args__ = (
@@ -123,6 +126,332 @@ class Section301Inclusion(BaseModel):
             "source_doc": self.source_doc,
             "source_page": self.source_page,
         }
+
+
+class Section301Rate(BaseModel):
+    """
+    v10.0: Temporal Section 301 rates for time-series tracking.
+
+    This table replaces Section301Inclusion for temporal queries.
+    Supports rate changes over time (e.g., 2024 Four-Year Review):
+    - List 4A facemasks: 7.5% (2020) → 25% (Sept 2024) → 50% (Jan 2026)
+
+    Key design:
+    - effective_start: When this rate begins
+    - effective_end: When superseded (NULL = currently active)
+    - chapter_99_code: The new Ch.99 code for this rate period
+    - supersedes_id: Links to the rate this one replaces
+
+    Query pattern for "rate as of date D":
+      WHERE hts_8digit = X
+        AND effective_start <= D
+        AND (effective_end IS NULL OR effective_end > D)
+      ORDER BY effective_start DESC
+      LIMIT 1
+    """
+    __tablename__ = "section_301_rates"
+    __table_args__ = (
+        UniqueConstraint('hts_8digit', 'chapter_99_code', 'effective_start', name='uq_301_rate_temporal'),
+        db.Index('idx_301_rates_hts_date', 'hts_8digit', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # HTS identification
+    hts_8digit = db.Column(db.String(10), nullable=False, index=True)  # First 8 digits (no dots)
+    hts_10digit = db.Column(db.String(12), nullable=True)  # Full 10-digit if applicable
+
+    # Chapter 99 code and rate
+    chapter_99_code = db.Column(db.String(16), nullable=False)  # "9903.91.07"
+    duty_rate = db.Column(db.Numeric(5, 4), nullable=False)  # 0.50 for 50%
+
+    # Temporal validity
+    effective_start = db.Column(db.Date, nullable=False)  # When rate begins
+    effective_end = db.Column(db.Date, nullable=True)  # When superseded (NULL = active)
+
+    # Classification
+    list_name = db.Column(db.String(64), nullable=True)  # "list_4a", "strategic_medical", etc.
+    sector = db.Column(db.String(64), nullable=True)  # "medical", "semiconductor", "ev", etc.
+    product_group = db.Column(db.String(128), nullable=True)  # "Facemasks", "Electric Vehicles"
+    description = db.Column(db.Text, nullable=True)  # Product description
+
+    # Audit trail
+    source_doc = db.Column(db.String(256), nullable=True)  # "2024-21217"
+    source_doc_id = db.Column(db.Integer, db.ForeignKey('source_documents.id'), nullable=True)
+
+    # Supersession tracking
+    supersedes_id = db.Column(db.Integer, db.ForeignKey('section_301_rates.id'), nullable=True)
+    superseded_by_id = db.Column(db.Integer, db.ForeignKey('section_301_rates.id'), nullable=True)
+
+    # Role: 'impose' (adds duty) vs 'exclude' (removes duty via exclusion)
+    # Exclusions take precedence over impose codes per CBP guidance
+    role = db.Column(db.String(16), nullable=False, default='impose')  # 'impose' or 'exclude'
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), nullable=True)  # "system", "human"
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if rate is active as of a given date."""
+        check_date = as_of_date or date.today()
+        if self.effective_end:
+            return self.effective_start <= check_date < self.effective_end
+        return self.effective_start <= check_date
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_8digit": self.hts_8digit,
+            "hts_10digit": self.hts_10digit,
+            "chapter_99_code": self.chapter_99_code,
+            "duty_rate": float(self.duty_rate) if self.duty_rate else None,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "list_name": self.list_name,
+            "sector": self.sector,
+            "product_group": self.product_group,
+            "description": self.description,
+            "source_doc": self.source_doc,
+            "source_doc_id": self.source_doc_id,
+            "supersedes_id": self.supersedes_id,
+            "superseded_by_id": self.superseded_by_id,
+            "role": self.role,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_by": self.created_by,
+            "is_active": self.is_active(),
+        }
+
+    @classmethod
+    def get_rate_as_of(cls, hts_8digit: str, as_of_date: date) -> Optional["Section301Rate"]:
+        """
+        Get the applicable rate for an HTS code as of a specific date.
+
+        Uses role-based precedence:
+        1. First check for active EXCLUSION within its time window
+        2. If exclusion exists and is active → return it (0% duty)
+        3. If no active exclusion → return most recent IMPOSE code
+
+        Per CBP guidance: When filing exclusion code, do NOT file base duty code.
+        Exclusions (role='exclude') always take precedence over impose codes.
+        """
+        from sqlalchemy import or_, case
+
+        return cls.query.filter(
+            cls.hts_8digit == hts_8digit,
+            cls.effective_start <= as_of_date,
+            or_(
+                cls.effective_end.is_(None),
+                cls.effective_end > as_of_date
+            )
+        ).order_by(
+            # Priority: exclusions first (0), impose second (1)
+            case((cls.role == 'exclude', 0), else_=1),
+            # Within same priority, most recent first
+            cls.effective_start.desc()
+        ).first()
+
+
+class Section232Rate(BaseModel):
+    """
+    v10.0: Temporal Section 232 rates for time-series tracking.
+
+    Supports rate changes over time and country-specific exceptions:
+    - Global rate: 50% (steel, aluminum) / 25% (copper)
+    - UK exception: 25% for steel/aluminum
+
+    Key design:
+    - country_code: NULL for global, 'GBR' for UK exception, etc.
+    - material_type: 'steel', 'aluminum', 'copper'
+    - article_type: 'primary' or 'derivative'
+    """
+    __tablename__ = "section_232_rates"
+    __table_args__ = (
+        UniqueConstraint('hts_8digit', 'material_type', 'country_code', 'effective_start',
+                        name='uq_232_rate_temporal'),
+        db.Index('idx_232_rates_hts_date', 'hts_8digit', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # HTS identification
+    hts_8digit = db.Column(db.String(10), nullable=False, index=True)
+    material_type = db.Column(db.String(20), nullable=False)  # steel, aluminum, copper
+
+    # Chapter 99 codes
+    chapter_99_claim = db.Column(db.String(16), nullable=False)  # Claim code
+    chapter_99_disclaim = db.Column(db.String(16), nullable=True)  # Disclaim code
+
+    # Rate
+    duty_rate = db.Column(db.Numeric(5, 4), nullable=False)  # 0.50 for 50%
+
+    # Country scope (NULL = all countries, specific code for exception)
+    country_code = db.Column(db.String(3), nullable=True, index=True)  # 'GBR', 'CAN', etc.
+
+    # Article classification
+    article_type = db.Column(db.String(20), nullable=True)  # 'primary', 'derivative'
+
+    # Temporal validity
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=True)
+
+    # Audit trail
+    source_doc = db.Column(db.String(256), nullable=True)
+    source_doc_id = db.Column(db.Integer, db.ForeignKey('source_documents.id'), nullable=True)
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), nullable=True)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if rate is active as of a given date."""
+        check_date = as_of_date or date.today()
+        if self.effective_end:
+            return self.effective_start <= check_date < self.effective_end
+        return self.effective_start <= check_date
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_8digit": self.hts_8digit,
+            "material_type": self.material_type,
+            "chapter_99_claim": self.chapter_99_claim,
+            "chapter_99_disclaim": self.chapter_99_disclaim,
+            "duty_rate": float(self.duty_rate) if self.duty_rate else None,
+            "country_code": self.country_code,
+            "article_type": self.article_type,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "source_doc": self.source_doc,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_active": self.is_active(),
+        }
+
+    @classmethod
+    def get_rate_as_of(cls, hts_8digit: str, material: str, country_code: str,
+                       as_of_date: date) -> Optional["Section232Rate"]:
+        """
+        Get the applicable rate for an HTS/material/country as of a specific date.
+
+        Tries country-specific rate first, then falls back to global rate.
+        """
+        from sqlalchemy import or_
+
+        # Try country-specific rate first
+        rate = cls.query.filter(
+            cls.hts_8digit == hts_8digit,
+            cls.material_type == material,
+            cls.country_code == country_code,
+            cls.effective_start <= as_of_date,
+            or_(cls.effective_end.is_(None), cls.effective_end > as_of_date)
+        ).order_by(cls.effective_start.desc()).first()
+
+        if rate:
+            return rate
+
+        # Fall back to global rate (country_code = NULL)
+        return cls.query.filter(
+            cls.hts_8digit == hts_8digit,
+            cls.material_type == material,
+            cls.country_code.is_(None),
+            cls.effective_start <= as_of_date,
+            or_(cls.effective_end.is_(None), cls.effective_end > as_of_date)
+        ).order_by(cls.effective_start.desc()).first()
+
+
+class IeepaRate(BaseModel):
+    """
+    v10.0: Temporal IEEPA rates for time-series tracking.
+
+    Supports both IEEPA programs:
+    - ieepa_fentanyl: 20% on China/HK/Macau (effective Apr 2025)
+    - ieepa_reciprocal: 10% baseline, country-specific rates
+
+    Key design:
+    - program_type: 'fentanyl' or 'reciprocal'
+    - country_code: 'CHN', 'HKG', 'MAC' for fentanyl; various for reciprocal
+    - variant: 'taxable', 'annex_ii_exempt', 'metal_exempt', etc.
+    """
+    __tablename__ = "ieepa_rates"
+    __table_args__ = (
+        UniqueConstraint('program_type', 'country_code', 'chapter_99_code', 'effective_start',
+                        name='uq_ieepa_rate_temporal'),
+        db.Index('idx_ieepa_rates_date', 'program_type', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Program identification
+    program_type = db.Column(db.String(20), nullable=False)  # 'fentanyl', 'reciprocal'
+
+    # Country scope
+    country_code = db.Column(db.String(3), nullable=True, index=True)  # 'CHN', 'HKG', 'MAC', NULL for all
+
+    # Chapter 99 code and rate
+    chapter_99_code = db.Column(db.String(16), nullable=False)
+    duty_rate = db.Column(db.Numeric(5, 4), nullable=False)
+
+    # Variant for different exemption types
+    variant = db.Column(db.String(32), nullable=True)  # 'taxable', 'annex_ii_exempt', 'metal_exempt'
+
+    # Rate type (fixed or formula)
+    rate_type = db.Column(db.String(20), default='fixed')  # 'fixed', 'formula'
+    rate_formula = db.Column(db.String(64), nullable=True)  # '15pct_minus_mfn' for EU ceiling
+
+    # Temporal validity
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=True)
+
+    # Audit trail
+    source_doc = db.Column(db.String(256), nullable=True)
+    source_doc_id = db.Column(db.Integer, db.ForeignKey('source_documents.id'), nullable=True)
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), nullable=True)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if rate is active as of a given date."""
+        check_date = as_of_date or date.today()
+        if self.effective_end:
+            return self.effective_start <= check_date < self.effective_end
+        return self.effective_start <= check_date
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "program_type": self.program_type,
+            "country_code": self.country_code,
+            "chapter_99_code": self.chapter_99_code,
+            "duty_rate": float(self.duty_rate) if self.duty_rate else None,
+            "variant": self.variant,
+            "rate_type": self.rate_type,
+            "rate_formula": self.rate_formula,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "source_doc": self.source_doc,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_active": self.is_active(),
+        }
+
+    @classmethod
+    def get_rate_as_of(cls, program_type: str, country_code: str,
+                       as_of_date: date, variant: str = None) -> Optional["IeepaRate"]:
+        """
+        Get the applicable IEEPA rate for a program/country as of a specific date.
+        """
+        from sqlalchemy import or_
+
+        query = cls.query.filter(
+            cls.program_type == program_type,
+            cls.country_code == country_code,
+            cls.effective_start <= as_of_date,
+            or_(cls.effective_end.is_(None), cls.effective_end > as_of_date)
+        )
+
+        if variant:
+            query = query.filter(cls.variant == variant)
+
+        return query.order_by(cls.effective_start.desc()).first()
 
 
 class Section301Exclusion(BaseModel):
@@ -175,6 +504,16 @@ class Section232Material(BaseModel):
     - content_basis: 'value' means duty is on material $ value, not percentage
     - split_policy: 'if_any_content' means generate 2 filing lines when material present
     - CBP now requires line splitting: one line for non-material content, one for material content
+
+    Phase 11 Update (Jan 2026): Added article_type per U.S. Note 16 to Chapter 99.
+    Three categories with different valuation and code rules:
+    - 'primary': Ch 72 steel, Ch 76 aluminum raw materials → full value, codes 9903.80.01/9903.85.03
+    - 'derivative': Ch 73 steel articles → full value, codes 9903.81.89/9903.81.90
+    - 'content': Other chapters with metal components → content value only, codes 9903.81.91/9903.85.08
+
+    IEEPA Reciprocal exemption rule:
+    - 'primary' and 'derivative': 100% of value exempt (entire article subject to 232)
+    - 'content': Only metal content portion exempt
     """
     __tablename__ = "section_232_materials"
     __table_args__ = (
@@ -194,6 +533,8 @@ class Section232Material(BaseModel):
     quantity_unit = db.Column(db.String(16), default="kg")  # Unit for material content reporting
     split_policy = db.Column(db.String(32), default="if_any_content")  # 'never', 'if_any_content', 'if_above_threshold'
     split_threshold_pct = db.Column(db.Numeric(5, 4), nullable=True)  # NULL for 'if_any_content', threshold for 'if_above_threshold'
+    # Phase 11: Article type per U.S. Note 16 to Chapter 99
+    article_type = db.Column(db.String(16), default="content")  # 'primary', 'derivative', 'content'
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -209,6 +550,7 @@ class Section232Material(BaseModel):
             "quantity_unit": self.quantity_unit,
             "split_policy": self.split_policy,
             "split_threshold_pct": float(self.split_threshold_pct) if self.split_threshold_pct else None,
+            "article_type": self.article_type,
         }
 
 

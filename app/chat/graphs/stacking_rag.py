@@ -602,10 +602,13 @@ def build_entry_stacks_node(state: StackingState) -> dict:
             if program_id == "section_301":
                 # Section 301 applies to all slices
                 # v7.0: Get HTS-specific code from section_301_inclusions
+                # v11.0: Use import_date for temporal lookup (exclusion precedence)
                 action = "apply"
+                import_date = state.get("import_date")
                 inclusion_result = json.loads(TOOL_MAP["check_program_inclusion"].invoke({
                     "program_id": program_id,
-                    "hts_code": hts_code
+                    "hts_code": hts_code,
+                    "as_of_date": import_date
                 }))
                 if inclusion_result.get("included"):
                     # Use HTS-specific code from inclusion table
@@ -637,34 +640,53 @@ def build_entry_stacks_node(state: StackingState) -> dict:
             elif program_id == "ieepa_reciprocal":
                 # IEEPA Reciprocal - determine variant
                 import_date = state.get("import_date")
+
+                # Phase 11: Get article_type for Note 16 full-value exemption
+                article_type = None
+                hts_8digit = hts_code.replace(".", "")[:8]
+                from app.web.db.models.tariff_tables import Section232Material
+                from app.chat.tools.stacking_tools import get_flask_app
+                app = get_flask_app()
+                with app.app_context():
+                    mat_232 = Section232Material.query.filter_by(hts_8digit=hts_8digit).first()
+                    if mat_232:
+                        article_type = getattr(mat_232, 'article_type', 'content') or 'content'
+
                 variant_result = json.loads(TOOL_MAP["resolve_reciprocal_variant"].invoke({
                     "hts_code": hts_code,
                     "slice_type": slice_type,
                     "us_content_pct": None,
-                    "import_date": import_date
+                    "import_date": import_date,
+                    "article_type": article_type
                 }))
                 variant = variant_result.get("variant", "taxable")
                 action = variant_result.get("action", "paid")
 
-                # For metal_exempt, use specific slice_type; otherwise try slice_type then "all"
-                lookup_slice = slice_type if variant == "metal_exempt" else slice_type
-                output = json.loads(TOOL_MAP["get_program_output"].invoke({
-                    "program_id": program_id,
-                    "action": action,
-                    "variant": variant,
-                    "slice_type": lookup_slice
-                }))
-                # Fallback to "all" if not found
-                if not output.get("found") and lookup_slice != "all":
+                # Use chapter_99_code and duty_rate directly from resolve_reciprocal_variant
+                # This handles note16_full_exempt and other variants that may not be in program_codes table
+                chapter_99_code = variant_result.get("chapter_99_code")
+                duty_rate = variant_result.get("duty_rate", 0)
+
+                # Fallback to get_program_output lookup if variant_result didn't provide code
+                if not chapter_99_code:
+                    lookup_slice = slice_type if variant == "metal_exempt" else slice_type
                     output = json.loads(TOOL_MAP["get_program_output"].invoke({
                         "program_id": program_id,
                         "action": action,
                         "variant": variant,
-                        "slice_type": "all"
+                        "slice_type": lookup_slice
                     }))
-                if output.get("found"):
-                    chapter_99_code = output.get("chapter_99_code")
-                    duty_rate = output.get("duty_rate", 0)
+                    # Fallback to "all" if not found
+                    if not output.get("found") and lookup_slice != "all":
+                        output = json.loads(TOOL_MAP["get_program_output"].invoke({
+                            "program_id": program_id,
+                            "action": action,
+                            "variant": variant,
+                            "slice_type": "all"
+                        }))
+                    if output.get("found"):
+                        chapter_99_code = output.get("chapter_99_code")
+                        duty_rate = output.get("duty_rate", 0)
 
             elif program_id.startswith("section_232_"):
                 # Section 232 - first check if HTS is on the 232 inclusion list

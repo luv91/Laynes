@@ -1,0 +1,50 @@
+name: Regulatory Watcher
+
+# Runs once daily at 6 AM UTC (10 PM PST / 1 AM EST)
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6:00 AM UTC
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  poll-and-process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: pipenv install --deploy
+
+      - name: Poll Federal Register
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pipenv run python scripts/run_watchers.py \
+            --source federal_register \
+            --since $(date -d "7 days ago" +%Y-%m-%d) \
+            --export-manifest
+
+      - name: Process Queue
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pipenv run python scripts/process_ingest_queue.py --max-jobs 50
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: regulatory-manifest-${{ github.run_id }}
+          path: manifests/*.json
+          if-no-files-found: ignore

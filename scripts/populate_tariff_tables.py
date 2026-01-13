@@ -99,6 +99,10 @@ from app.web.db.models.tariff_tables import (
     CountryGroupMember,
     ProgramRate,
     HtsBaseRate,
+    # v13.0: Temporal rate tables
+    Section232Rate,
+    IeepaRate,
+    Section301Rate,
 )
 
 
@@ -425,8 +429,80 @@ def populate_tariff_programs(app):
         print(f"  Added {len(programs)} tariff programs")
 
 
+def populate_section_301_from_csv(app):
+    """Import Section 301 HTS codes from CSV.
+
+    v9.0 Update (Jan 2026):
+    - Imports 10,422 HTS codes from data/section_301_hts_codes.csv
+    - CSV already contains: hts_8digit, list_name, chapter_99_code, rate, source_pdf
+    - Replaces hardcoded sample data with complete USTR list
+    """
+    import csv
+    from pathlib import Path
+
+    csv_path = Path(__file__).parent.parent / "data" / "section_301_hts_codes.csv"
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Skipping CSV import.")
+        return 0
+
+    with app.app_context():
+        print("Importing Section 301 HTS codes from CSV...")
+
+        imported = 0
+        updated = 0
+        list_counts = {}
+
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Use hts_8digit from CSV directly
+                hts_8digit = row['hts_8digit']
+                list_name = row['list_name']
+
+                # Track counts by list
+                list_counts[list_name] = list_counts.get(list_name, 0) + 1
+
+                inc_data = {
+                    "hts_8digit": hts_8digit,
+                    "list_name": list_name,
+                    "chapter_99_code": row['chapter_99_code'],
+                    "duty_rate": float(row['rate']),
+                    "source_doc": row.get('source_pdf', 'USTR_301_Notice.pdf'),
+                }
+
+                existing = Section301Inclusion.query.filter_by(
+                    hts_8digit=hts_8digit,
+                    list_name=list_name
+                ).first()
+
+                if existing:
+                    # Update if chapter_99_code or rate changed
+                    if (existing.chapter_99_code != inc_data["chapter_99_code"] or
+                        existing.duty_rate != inc_data["duty_rate"]):
+                        for key, val in inc_data.items():
+                            setattr(existing, key, val)
+                        updated += 1
+                else:
+                    inclusion = Section301Inclusion(**inc_data)
+                    db.session.add(inclusion)
+                    imported += 1
+
+        db.session.commit()
+
+        print(f"  Imported: {imported}, Updated: {updated}")
+        for list_name, count in sorted(list_counts.items()):
+            print(f"    {list_name}: {count} codes")
+
+        return imported + updated
+
+
 def populate_section_301_inclusions(app):
-    """Populate Section 301 inclusion list (sample HTS codes)."""
+    """Populate Section 301 inclusion list (sample HTS codes).
+
+    Note: This function adds manual overrides/test cases.
+    For the full 10,422 HTS code list, see populate_section_301_from_csv().
+    """
     # Sample inclusions including our USB-C cable example
     inclusions = [
         # USB-C cables and related electrical products (List 3)
@@ -447,6 +523,34 @@ def populate_section_301_inclusions(app):
         {"hts_8digit": "84733051", "list_name": "list_other", "chapter_99_code": "9903.88.69", "duty_rate": 0.25, "source_doc": "301_List_Other.pdf"},
         # Additional 10-digit variant for 8544.42.2000 (copper full claim example)
         {"hts_8digit": "85444220", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "301_List_3.pdf"},
+
+        # =================================================================
+        # v8.0: Test case HTS codes (January 2026)
+        # Sources: 83 FR 28710 (List 1), 83 FR 47974 (List 3), 85 FR 3741 (List 4A), 2024 Four-Year Review
+        # =================================================================
+
+        # Case 1: 8302.41.6015 - Base metal fittings for furniture (List 3)
+        {"hts_8digit": "83024160", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "83 FR 47974"},
+        {"hts_8digit": "83024100", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "83 FR 47974"},
+
+        # Case 2: 7615.10.7130 - Aluminum household bakeware (List 4A @ 7.5%)
+        {"hts_8digit": "76151071", "list_name": "list_4a", "chapter_99_code": "9903.88.15", "duty_rate": 0.075, "source_doc": "85 FR 3741"},
+        {"hts_8digit": "76151000", "list_name": "list_4a", "chapter_99_code": "9903.88.15", "duty_rate": 0.075, "source_doc": "85 FR 3741"},
+
+        # Case 3: 2711.12.0020 - Propane gas (List 3)
+        {"hts_8digit": "27111200", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "83 FR 47974"},
+
+        # Case 4: 7317.00.5502 - Steel nails, wire (List 3)
+        {"hts_8digit": "73170055", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "83 FR 47974"},
+        {"hts_8digit": "73170000", "list_name": "list_3", "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "source_doc": "83 FR 47974"},
+
+        # Case 5: 8504.90.9642 - Transformer parts (List 1)
+        {"hts_8digit": "85049096", "list_name": "list_1", "chapter_99_code": "9903.88.01", "duty_rate": 0.25, "source_doc": "83 FR 28710"},
+        {"hts_8digit": "85049000", "list_name": "list_1", "chapter_99_code": "9903.88.01", "duty_rate": 0.25, "source_doc": "83 FR 28710"},
+        {"hts_8digit": "85040000", "list_name": "list_1", "chapter_99_code": "9903.88.01", "duty_rate": 0.25, "source_doc": "83 FR 28710"},
+
+        # Case 6: 8507.60.0010 - EV Lithium-ion batteries (2024 Four-Year Review - special code)
+        {"hts_8digit": "85076000", "list_name": "ev_batteries", "chapter_99_code": "9903.91.01", "duty_rate": 0.25, "source_doc": "2024 Four-Year Review"},
     ]
 
     with app.app_context():
@@ -508,6 +612,14 @@ def populate_section_232_from_csv(app):
     - CSV generated by scripts/parse_cbp_232_lists.py from official CBP DOCX files
     - Sources: CSMS #65794272 (copper), CSMS #65936570 (steel), CSMS #65936615 (aluminum)
 
+    v11.0 Update (Jan 2026):
+    - Now reads article_type from CSV (data-driven, not hardcoded)
+    - article_type values: 'primary', 'derivative', 'content' per U.S. Note 16
+    - Claim codes in CSV are correctly mapped to article_type:
+      - primary steel → 9903.80.01
+      - derivative steel → 9903.81.89
+      - content steel → 9903.81.91
+
     This replaces the hardcoded sample data with the complete CBP list.
     """
     import csv
@@ -524,6 +636,7 @@ def populate_section_232_from_csv(app):
 
         imported = 0
         updated = 0
+        type_counts = {'primary': 0, 'derivative': 0, 'content': 0}
 
         with open(csv_path, 'r') as f:
             reader = csv.DictReader(f)
@@ -540,9 +653,14 @@ def populate_section_232_from_csv(app):
                     'aluminum': 'CSMS_65936615_Aluminum_Aug2025.pdf',
                 }
 
+                # v11.0: Read article_type from CSV (data-driven)
+                article_type = row.get('article_type', 'content')
+                type_counts[article_type] = type_counts.get(article_type, 0) + 1
+
                 mat_data = {
                     "hts_8digit": hts_8digit,
                     "material": row['material'],
+                    "article_type": article_type,  # v11.0: From CSV
                     "claim_code": row['chapter_99_claim'],
                     "disclaim_code": row['chapter_99_disclaim'],
                     "duty_rate": float(row['duty_rate']),
@@ -570,6 +688,7 @@ def populate_section_232_from_csv(app):
 
         db.session.commit()
         print(f"  Imported {imported} new, updated {updated} existing Section 232 entries")
+        print(f"  Article types: primary={type_counts.get('primary', 0)}, derivative={type_counts.get('derivative', 0)}, content={type_counts.get('content', 0)}")
         return imported + updated
 
 
@@ -1616,13 +1735,284 @@ def verify_data(app):
         for rate in base_rates:
             print(f"  HTS {rate.hts_code}: {rate.column1_rate*100}% MFN")
 
+        # v13.0: Show temporal table counts
+        print("\n=== v13.0 Temporal Rate Tables ===")
+        s232_count = Section232Rate.query.count()
+        ieepa_count = IeepaRate.query.count()
+        print(f"  section_232_rates: {s232_count} rows")
+        print(f"  ieepa_rates: {ieepa_count} rows")
+
+
+def populate_section_232_temporal(app):
+    """
+    v13.0: Populate temporal Section 232 rates table.
+
+    Creates historical rate periods for all HTS codes in section_232_materials.
+    See scripts/migrate_232_to_temporal.py for the historical rate definitions.
+    """
+    from decimal import Decimal
+
+    # Historical Section 232 rate periods from Presidential Proclamations
+    SECTION_232_HISTORY = [
+        # Steel - Original Proclamation 9705 (March 23, 2018)
+        {'material': 'steel', 'rate': Decimal('0.25'),
+         'start': date(2018, 3, 23), 'end': date(2025, 3, 11),
+         'source_doc': 'Proclamation 9705 (83 FR 11625)'},
+        # Steel - Proclamation 10896 doubled rate (March 12, 2025)
+        {'material': 'steel', 'rate': Decimal('0.50'),
+         'start': date(2025, 3, 12), 'end': None,
+         'source_doc': 'Proclamation 10896 (90 FR 40326)'},
+        # Aluminum - Original Proclamation 9704 (March 23, 2018)
+        {'material': 'aluminum', 'rate': Decimal('0.10'),
+         'start': date(2018, 3, 23), 'end': date(2025, 3, 11),
+         'source_doc': 'Proclamation 9704 (83 FR 11619)'},
+        # Aluminum - Proclamation 10896 increased rate (March 12, 2025)
+        {'material': 'aluminum', 'rate': Decimal('0.50'),
+         'start': date(2025, 3, 12), 'end': None,
+         'source_doc': 'Proclamation 10896 (90 FR 40326)'},
+        # Copper - Added by Proclamation 10896 (March 12, 2025)
+        {'material': 'copper', 'rate': Decimal('0.50'),
+         'start': date(2025, 3, 12), 'end': None,
+         'source_doc': 'Proclamation 10896 - Section 232 Copper Investigation'},
+    ]
+
+    with app.app_context():
+        # Check if already populated
+        existing_count = Section232Rate.query.count()
+        if existing_count > 0:
+            print(f"section_232_rates already has {existing_count} rows - skipping")
+            return
+
+        print("Populating section_232_rates temporal table...")
+
+        # Get all HTS codes from static table
+        materials = Section232Material.query.all()
+        print(f"  Found {len(materials)} HTS codes in section_232_materials")
+
+        rows_created = 0
+        for mat in materials:
+            # Find applicable historical periods for this material
+            periods = [p for p in SECTION_232_HISTORY if p['material'] == mat.material]
+
+            for period in periods:
+                rate = Section232Rate(
+                    hts_8digit=mat.hts_8digit,
+                    material_type=mat.material,
+                    article_type=getattr(mat, 'article_type', 'content') or 'content',
+                    chapter_99_claim=mat.claim_code,
+                    chapter_99_disclaim=mat.disclaim_code,
+                    duty_rate=period['rate'],
+                    country_code=None,  # Global rate, not country-specific
+                    effective_start=period['start'],
+                    effective_end=period['end'],
+                    source_doc=period['source_doc'],
+                    created_by='populate_tariff_tables.py v13.0',
+                )
+                db.session.add(rate)
+                rows_created += 1
+
+        db.session.commit()
+        print(f"  Created {rows_created} temporal rows in section_232_rates")
+
+
+def populate_ieepa_temporal(app):
+    """
+    v13.0: Populate temporal IEEPA rates table.
+
+    Creates historical rate periods for IEEPA programs (Fentanyl and Reciprocal).
+    See scripts/migrate_ieepa_to_temporal.py for the historical rate definitions.
+    """
+    from decimal import Decimal
+
+    # Countries subject to IEEPA Fentanyl
+    FENTANYL_COUNTRIES = ['CN', 'HK', 'MO']
+
+    # Countries subject to IEEPA Reciprocal
+    RECIPROCAL_COUNTRIES = ['CN', 'HK', 'MO', 'GB', 'JP', 'VN', 'IN', 'TW', 'KR']
+
+    # Historical IEEPA rate periods from Executive Orders
+    IEEPA_HISTORY = [
+        # Fentanyl Phase 1: EO 14195 (Feb 4, 2025) - 10% for all
+        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
+           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
+           'effective_start': date(2025, 2, 4), 'effective_end': date(2025, 4, 8),
+           'source_doc': 'EO 14195 - Fentanyl tariff original'} for c in FENTANYL_COUNTRIES],
+
+        # Fentanyl Phase 2: EO 14257 (Apr 9, 2025) - China doubled to 20%
+        {'program_type': 'fentanyl', 'country_code': 'CN', 'chapter_99_code': '9903.01.24',
+         'duty_rate': Decimal('0.20'), 'variant': None, 'rate_type': 'ad_valorem',
+         'effective_start': date(2025, 4, 9), 'effective_end': date(2025, 11, 14),
+         'source_doc': 'EO 14257 - Fentanyl doubled for China'},
+
+        # Fentanyl HK/MO stayed at 10% during Apr-Nov 2025
+        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
+           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
+           'effective_start': date(2025, 4, 9), 'effective_end': date(2025, 11, 14),
+           'source_doc': 'EO 14257 - Fentanyl HK/MO unchanged'} for c in ['HK', 'MO']],
+
+        # Fentanyl Phase 3: EO 14357 (Nov 15, 2025) - reduced back to 10%
+        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
+           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
+           'effective_start': date(2025, 11, 15), 'effective_end': None,
+           'source_doc': 'EO 14357 - Fentanyl rate reduced'} for c in FENTANYL_COUNTRIES],
+
+        # Reciprocal Standard (10% for all countries)
+        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.25',
+           'duty_rate': Decimal('0.10'), 'variant': 'standard', 'rate_type': 'ad_valorem',
+           'effective_start': date(2025, 4, 9), 'effective_end': None,
+           'source_doc': 'EO 14257 - Reciprocal Tariff (standard)'} for c in RECIPROCAL_COUNTRIES],
+
+        # Reciprocal Annex II Exempt (0% - exemption)
+        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.32',
+           'duty_rate': Decimal('0.00'), 'variant': 'annex_ii_exempt', 'rate_type': 'exempt',
+           'effective_start': date(2025, 4, 9), 'effective_end': None,
+           'source_doc': 'EO 14257 Annex II - Exemptions'} for c in RECIPROCAL_COUNTRIES],
+
+        # Reciprocal Section 232 Exempt (0% for reciprocal, 232 takes precedence)
+        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.33',
+           'duty_rate': Decimal('0.00'), 'variant': 'section_232_exempt', 'rate_type': 'exempt',
+           'effective_start': date(2025, 4, 9), 'effective_end': None,
+           'source_doc': 'EO 14257 - Section 232 exemption'} for c in RECIPROCAL_COUNTRIES],
+
+        # Reciprocal US Content Exempt (>= 20% US content)
+        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.34',
+           'duty_rate': Decimal('0.00'), 'variant': 'us_content_exempt', 'rate_type': 'exempt',
+           'effective_start': date(2025, 4, 9), 'effective_end': None,
+           'source_doc': 'EO 14257 - US Content exemption'} for c in RECIPROCAL_COUNTRIES],
+    ]
+
+    with app.app_context():
+        # Check if already populated
+        existing_count = IeepaRate.query.count()
+        if existing_count > 0:
+            print(f"ieepa_rates already has {existing_count} rows - skipping")
+            return
+
+        print("Populating ieepa_rates temporal table...")
+
+        rows_created = 0
+        for period in IEEPA_HISTORY:
+            rate = IeepaRate(
+                program_type=period['program_type'],
+                country_code=period['country_code'],
+                chapter_99_code=period['chapter_99_code'],
+                duty_rate=period['duty_rate'],
+                variant=period.get('variant'),
+                rate_type=period.get('rate_type', 'ad_valorem'),
+                effective_start=period['effective_start'],
+                effective_end=period['effective_end'],
+                source_doc=period['source_doc'],
+                created_by='populate_tariff_tables.py v13.0',
+            )
+            db.session.add(rate)
+            rows_created += 1
+
+        db.session.commit()
+        print(f"  Created {rows_created} temporal rows in ieepa_rates")
+
+
+def populate_section_301_temporal(app):
+    """Populate section_301_rates temporal table from CSV.
+
+    v15.0 Update (Jan 2026):
+    - Imports ~10,400 HTS codes with effective_start dates
+    - Enables historical queries: "What was the 301 rate on date X?"
+    - Uses effective_start from CSV to create time-bounded records
+    - Handles duplicate entries in CSV by tracking unique keys
+    """
+    import csv
+    from pathlib import Path
+    from datetime import datetime
+
+    csv_path = Path(__file__).parent.parent / "data" / "section_301_hts_codes.csv"
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Skipping temporal import.")
+        return 0
+
+    with app.app_context():
+        # Check if already populated with complete data
+        existing_count = Section301Rate.query.count()
+        if existing_count >= 10000:
+            print(f"section_301_rates already has {existing_count} rows - skipping")
+            return existing_count
+
+        # Clear partial imports
+        if existing_count > 0:
+            print(f"  Clearing {existing_count} partial rows from section_301_rates...")
+            Section301Rate.query.delete()
+            db.session.commit()
+
+        print("Importing Section 301 temporal rates from CSV...")
+
+        imported = 0
+        skipped = 0
+        list_counts = {}
+        seen_keys = set()  # Track unique (hts_8digit, chapter_99_code, effective_start)
+
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Parse effective_start date
+                effective_start_str = row.get('effective_start', '2018-07-06')
+                try:
+                    effective_start = datetime.strptime(effective_start_str, '%Y-%m-%d').date()
+                except ValueError:
+                    effective_start = date(2018, 7, 6)  # Default to List 1 start
+
+                hts_8digit = row['hts_8digit']
+                chapter_99_code = row['chapter_99_code']
+
+                # Create unique key for deduplication
+                unique_key = (hts_8digit, chapter_99_code, str(effective_start))
+                if unique_key in seen_keys:
+                    skipped += 1
+                    continue
+                seen_keys.add(unique_key)
+
+                list_name = row['list_name']
+                list_counts[list_name] = list_counts.get(list_name, 0) + 1
+
+                # Clean hts_10digit - avoid float-like values
+                hts_10digit = row.get('hts_10digit') or None
+                if hts_10digit and '.' in str(hts_10digit):
+                    hts_10digit = None
+
+                rate_data = {
+                    "hts_8digit": hts_8digit,
+                    "hts_10digit": hts_10digit,
+                    "chapter_99_code": chapter_99_code,
+                    "duty_rate": float(row['rate']),
+                    "effective_start": effective_start,
+                    "effective_end": None,  # Currently active
+                    "list_name": list_name,
+                    "source_doc": row.get('source_pdf', 'USTR_301_Notice.pdf'),
+                }
+
+                rate = Section301Rate(**rate_data)
+                db.session.add(rate)
+                imported += 1
+
+                # Commit in batches for performance
+                if imported % 1000 == 0:
+                    db.session.commit()
+                    print(f"    ... imported {imported} rows")
+
+        db.session.commit()
+
+        print(f"  Imported {imported} temporal Section 301 rates (skipped {skipped} duplicates)")
+        for list_name, count in sorted(list_counts.items()):
+            print(f"    {list_name}: {count} codes")
+
+        return imported
+
 
 def main():
     parser = argparse.ArgumentParser(description="Populate tariff tables with sample data")
     parser.add_argument("--reset", action="store_true", help="Drop and recreate tables")
     args = parser.parse_args()
 
-    print("=== Tariff Tables Population Script (v8.0 - CBP 232 Import) ===\n")
+    print("=== Tariff Tables Population Script (v15.0 - Section 301 Temporal) ===\n")
 
     # Use the existing Flask app factory
     app = create_app()
@@ -1632,6 +2022,11 @@ def main():
 
     # Populate all tables (v4.0 and earlier)
     populate_tariff_programs(app)
+
+    # v9.0: Import Section 301 from CSV (10,422 HTS codes)
+    populate_section_301_from_csv(app)
+
+    # Manual overrides/test cases (run after CSV import)
     populate_section_301_inclusions(app)
     populate_section_301_exclusions(app)
     populate_section_232_materials(app)
@@ -1645,6 +2040,13 @@ def main():
     populate_country_group_members(app)
     populate_program_rates(app)
     populate_hts_base_rates(app)
+
+    # v13.0: Temporal rate tables (must run AFTER section_232_materials is populated)
+    populate_section_232_temporal(app)
+    populate_ieepa_temporal(app)
+
+    # v15.0: Section 301 temporal (after CSV import)
+    populate_section_301_temporal(app)
 
     # Verify data
     verify_data(app)

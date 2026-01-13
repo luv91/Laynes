@@ -22,14 +22,228 @@ v7.0 Update (Jan 2026) - Phoebe-Aligned ACE Filing:
 - Steel/Aluminum (disclaim_behavior='omit'): Omit entirely when not claimed
 - Uses HTS-specific claim_codes from section_232_materials table
 - 301 codes come from section_301_inclusions, not program_codes
+
+v12.0 Update (Jan 2026) - IEEPA Code Corrections:
+- Fixed IEEPA Fentanyl code: 9903.01.24 (NOT 9903.01.25)
+- IEEPA Reciprocal uses 9903.01.25 (standard), 9903.01.32 (Annex II exempt),
+  or 9903.01.33 (232-exempt)
+- Added Annex II energy product exemption (propane, LPG, petroleum)
+- Per CSMS #66749380 and Annex II to EO 14257
 """
 
 import os
+import csv
 import json
 from datetime import date
+from pathlib import Path
 from typing import Optional
 
 from langchain_core.tools import tool
+
+
+# ============================================================================
+# v12.0: IEEPA Code Constants (per CSMS #66749380)
+# ============================================================================
+# These are the CORRECT Chapter 99 codes for IEEPA tariffs on China
+# IMPORTANT: Fentanyl and Reciprocal are DIFFERENT programs with DIFFERENT codes!
+
+IEEPA_CODES = {
+    # IEEPA Fentanyl (Synthetic Opioid Emergency) - EO 14195, EO 14357
+    'fentanyl': {
+        'code': '9903.01.24',  # NOT 9903.01.25!
+        'rate': 0.10,
+        'legal_basis': 'EO 14195 (Feb 2025), EO 14357 (Nov 2025)',
+        'applies_to': ['CN', 'HK'],  # China, Hong Kong
+    },
+    # IEEPA Reciprocal (Trade Deficit) - EO 14257
+    'reciprocal': {
+        'standard': {
+            'code': '9903.01.25',
+            'rate': 0.10,
+        },
+        'annex_ii_exempt': {
+            'code': '9903.01.32',
+            'rate': 0.00,
+            'reason': 'Annex II product exemption',
+        },
+        'section_232_exempt': {
+            'code': '9903.01.33',
+            'rate': 0.00,
+            'reason': 'Section 232 article exemption',
+        },
+        'us_content_exempt': {
+            'code': '9903.01.34',
+            'rate': 0.00,
+            'reason': 'US content >= 20%',
+        },
+    },
+}
+
+
+# ============================================================================
+# v13.0: Temporal IEEPA Rate Lookup with Fallback
+# ============================================================================
+
+def get_ieepa_rate_temporal(program_type: str, country_code: str, as_of_date=None, variant: str = None):
+    """
+    Get IEEPA rate from temporal table with fallback to hardcoded constants.
+
+    Args:
+        program_type: 'fentanyl' or 'reciprocal'
+        country_code: ISO 2-letter country code (e.g., 'CN', 'HK')
+        as_of_date: Date for temporal lookup (default: today)
+        variant: For reciprocal, the variant type (standard, annex_ii_exempt, etc.)
+
+    Returns:
+        dict with 'code', 'rate', 'source' keys
+    """
+    from datetime import date as date_type
+
+    # Normalize date
+    if as_of_date is None:
+        lookup_date = date_type.today()
+    elif isinstance(as_of_date, str):
+        from datetime import datetime
+        lookup_date = datetime.strptime(as_of_date, "%Y-%m-%d").date()
+    else:
+        lookup_date = as_of_date
+
+    # Try temporal table first
+    try:
+        app = get_flask_app()
+        with app.app_context():
+            models = get_models()
+            IeepaRate = models.get("IeepaRate")
+            if IeepaRate:
+                rate = IeepaRate.get_rate_as_of(
+                    program_type=program_type,
+                    country_code=country_code,
+                    as_of_date=lookup_date,
+                    variant=variant
+                )
+                if rate:
+                    return {
+                        'code': rate.chapter_99_code,
+                        'rate': float(rate.duty_rate),
+                        'source': 'temporal',
+                        'effective_start': rate.effective_start.isoformat() if rate.effective_start else None,
+                    }
+    except Exception:
+        pass  # Fall through to hardcoded
+
+    # Fallback to hardcoded constants
+    if program_type == 'fentanyl':
+        return {
+            'code': IEEPA_CODES['fentanyl']['code'],
+            'rate': IEEPA_CODES['fentanyl']['rate'],
+            'source': 'hardcoded',
+        }
+    elif program_type == 'reciprocal':
+        variant_key = variant or 'standard'
+        if variant_key in IEEPA_CODES['reciprocal']:
+            return {
+                'code': IEEPA_CODES['reciprocal'][variant_key]['code'],
+                'rate': IEEPA_CODES['reciprocal'][variant_key]['rate'],
+                'source': 'hardcoded',
+            }
+
+    # Default fallback
+    return {
+        'code': IEEPA_CODES['fentanyl']['code'] if program_type == 'fentanyl' else IEEPA_CODES['reciprocal']['standard']['code'],
+        'rate': 0.10,
+        'source': 'default',
+    }
+
+
+# ============================================================================
+# v12.0: Annex II Energy Product Exemptions
+# Per Annex II to Executive Order 14257 (April 2025, updated Sept 2025)
+# ============================================================================
+# These HTS prefixes are EXEMPT from IEEPA Reciprocal tariffs
+# Load from CSV for data-driven updates
+
+_ANNEX_II_EXEMPTIONS_CACHE = None
+
+
+def load_annex_ii_exemptions():
+    """Load Annex II exemptions from CSV file."""
+    global _ANNEX_II_EXEMPTIONS_CACHE
+
+    if _ANNEX_II_EXEMPTIONS_CACHE is not None:
+        return _ANNEX_II_EXEMPTIONS_CACHE
+
+    csv_path = Path(__file__).parent.parent.parent.parent / "data" / "annex_ii_exemptions.csv"
+
+    exemptions = {}
+    if csv_path.exists():
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                hts_prefix = row['hts_prefix'].replace('.', '')
+                exemptions[hts_prefix] = {
+                    'description': row.get('description', ''),
+                    'exemption_code': row.get('exemption_code', '9903.01.32'),
+                    'category': row.get('category', ''),
+                    'effective_date': row.get('effective_date'),
+                }
+    else:
+        # Fallback: Hardcoded energy products if CSV not available
+        # Per Annex II to EO 14257
+        energy_prefixes = {
+            '2709': 'Crude petroleum oils',
+            '271012': 'Light petroleum oils',
+            '271111': 'Natural gas, liquefied (LNG)',
+            '271112': 'Propane, liquefied',
+            '271113': 'Butanes, liquefied',
+            '271114': 'Ethylene, propylene, butylene, butadiene',
+            '271119': 'Other liquefied petroleum gases (LPG)',
+            '271121': 'Natural gas, gaseous',
+            '271129': 'Other petroleum gases, gaseous',
+            '2701': 'Coal and solid fuels',
+            '2702': 'Lignite',
+            '2704': 'Coke and semi-coke',
+            '2716': 'Electrical energy',
+        }
+        for prefix, desc in energy_prefixes.items():
+            exemptions[prefix] = {
+                'description': desc,
+                'exemption_code': '9903.01.32',
+                'category': 'energy',
+            }
+
+    _ANNEX_II_EXEMPTIONS_CACHE = exemptions
+    return exemptions
+
+
+def is_annex_ii_energy_exempt(hts_code: str) -> dict:
+    """
+    v12.0: Check if HTS code is an Annex II energy product.
+
+    Uses prefix matching - checks progressively shorter prefixes.
+
+    Args:
+        hts_code: The HTS code to check
+
+    Returns:
+        dict with 'exempt' flag and exemption details if found
+    """
+    exemptions = load_annex_ii_exemptions()
+    hts_clean = hts_code.replace('.', '')
+
+    # Try progressively shorter prefixes (longest match wins)
+    for length in [8, 6, 4]:
+        prefix = hts_clean[:length]
+        if prefix in exemptions:
+            return {
+                'exempt': True,
+                'hts_code': hts_code,
+                'matched_prefix': prefix,
+                'exemption_code': exemptions[prefix].get('exemption_code', '9903.01.32'),
+                'description': exemptions[prefix].get('description', ''),
+                'category': exemptions[prefix].get('category', 'energy'),
+            }
+
+    return {'exempt': False, 'hts_code': hts_code}
 
 
 # ============================================================================
@@ -59,8 +273,11 @@ def get_models():
     from app.web.db.models.tariff_tables import (
         TariffProgram,
         Section301Inclusion,
+        Section301Rate,  # v10.0: Temporal 301 rates
         Section301Exclusion,
         Section232Material,
+        Section232Rate,  # v13.0: Temporal 232 rates
+        IeepaRate,  # v13.0: Temporal IEEPA rates
         ProgramCode,
         DutyRule,
         ProductHistory,
@@ -80,8 +297,11 @@ def get_models():
     return {
         "TariffProgram": TariffProgram,
         "Section301Inclusion": Section301Inclusion,
+        "Section301Rate": Section301Rate,  # v10.0: Temporal 301 rates
         "Section301Exclusion": Section301Exclusion,
         "Section232Material": Section232Material,
+        "Section232Rate": Section232Rate,  # v13.0: Temporal 232 rates
+        "IeepaRate": IeepaRate,  # v13.0: Temporal IEEPA rates
         "ProgramCode": ProgramCode,
         "DutyRule": DutyRule,
         "ProductHistory": ProductHistory,
@@ -646,7 +866,7 @@ def get_applicable_programs(country: str, hts_code: str, import_date: Optional[s
 # ============================================================================
 
 @tool
-def check_program_inclusion(program_id: str, hts_code: str) -> str:
+def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = None) -> str:
     """
     Check if an HTS code is included in a specific tariff program.
 
@@ -656,6 +876,7 @@ def check_program_inclusion(program_id: str, hts_code: str) -> str:
     Args:
         program_id: The program to check (e.g., "section_301", "section_232_copper")
         hts_code: The 10-digit HTS code
+        as_of_date: Optional date string (YYYY-MM-DD) for temporal lookup. Defaults to today.
 
     Returns:
         JSON with inclusion result, Chapter 99 code, duty rate, and source info
@@ -665,6 +886,7 @@ def check_program_inclusion(program_id: str, hts_code: str) -> str:
         models = get_models()
         TariffProgram = models["TariffProgram"]
         Section301Inclusion = models["Section301Inclusion"]
+        Section301Rate = models["Section301Rate"]  # v10.0: Temporal rates
         Section232Material = models["Section232Material"]
 
         hts_8digit = hts_code.replace(".", "")[:8]
@@ -688,6 +910,41 @@ def check_program_inclusion(program_id: str, hts_code: str) -> str:
 
         # Look up in the appropriate inclusion table
         if program.inclusion_table == "section_301_inclusions":
+            # v10.0: Use temporal Section301Rate table with as_of_date query
+            # This enables correct rate lookup for any point in time
+            from datetime import date as date_type, datetime
+
+            # Parse as_of_date or default to today
+            if as_of_date:
+                try:
+                    lookup_date = datetime.strptime(as_of_date, "%Y-%m-%d").date()
+                except (ValueError, TypeError):
+                    lookup_date = date_type.today()
+            else:
+                lookup_date = date_type.today()
+
+            # Get the rate for this HTS code as of the lookup date
+            # Uses role-based precedence: exclusions take priority over impose codes
+            rate = Section301Rate.get_rate_as_of(hts_8digit, lookup_date)
+
+            if rate:
+                return json.dumps({
+                    "included": True,
+                    "program_id": program_id,
+                    "hts_8digit": hts_8digit,
+                    "list_name": rate.list_name,
+                    "chapter_99_code": rate.chapter_99_code,
+                    "duty_rate": float(rate.duty_rate),
+                    "source_doc": rate.source_doc,
+                    "product_group": rate.product_group,
+                    "sector": rate.sector,
+                    "effective_start": rate.effective_start.isoformat() if rate.effective_start else None,
+                    # v10.0: Indicate this came from temporal table
+                    "temporal_lookup": True,
+                })
+
+            # Fallback to legacy table if no temporal rate found
+            # (preserves backwards compatibility during transition)
             inclusion = Section301Inclusion.query.filter_by(hts_8digit=hts_8digit).first()
             if inclusion:
                 return json.dumps({
@@ -698,11 +955,50 @@ def check_program_inclusion(program_id: str, hts_code: str) -> str:
                     "chapter_99_code": inclusion.chapter_99_code,
                     "duty_rate": float(inclusion.duty_rate),
                     "source_doc": inclusion.source_doc,
-                    "source_page": inclusion.source_page
+                    "source_page": inclusion.source_page,
+                    # v10.0: Indicate this came from legacy table
+                    "temporal_lookup": False,
                 })
         elif program.inclusion_table == "section_232_materials":
             # For 232, we check if HTS is in the table (material-specific check comes later)
             material = program.condition_param  # e.g., "copper", "steel", "aluminum"
+
+            # v13.0: Try temporal lookup first, fall back to static table
+            Section232Rate = models.get("Section232Rate")
+            if Section232Rate:
+                from datetime import date as date_type
+                try:
+                    if as_of_date:
+                        from datetime import datetime
+                        lookup_date = datetime.strptime(as_of_date, "%Y-%m-%d").date()
+                    else:
+                        lookup_date = date_type.today()
+
+                    # Try temporal lookup
+                    rate = Section232Rate.get_rate_as_of(
+                        hts_8digit=hts_8digit,
+                        material=material,
+                        country_code=None,  # Use global rate
+                        as_of_date=lookup_date
+                    )
+                    if rate:
+                        return json.dumps({
+                            "included": True,
+                            "program_id": program_id,
+                            "hts_8digit": hts_8digit,
+                            "material": material,
+                            "claim_code": rate.chapter_99_claim,
+                            "disclaim_code": rate.chapter_99_disclaim,
+                            "duty_rate": float(rate.duty_rate),
+                            "article_type": rate.article_type,
+                            "source_doc": rate.source_doc,
+                            "effective_start": rate.effective_start.isoformat() if rate.effective_start else None,
+                            "temporal_lookup": True,  # v13.0: Indicate temporal lookup
+                        })
+                except Exception:
+                    pass  # Fall through to static lookup
+
+            # Fallback to static section_232_materials table
             inclusion = Section232Material.query.filter_by(
                 hts_8digit=hts_8digit,
                 material=material
@@ -716,7 +1012,9 @@ def check_program_inclusion(program_id: str, hts_code: str) -> str:
                     "claim_code": inclusion.claim_code,
                     "disclaim_code": inclusion.disclaim_code,
                     "duty_rate": float(inclusion.duty_rate),
-                    "source_doc": inclusion.source_doc
+                    "article_type": getattr(inclusion, 'article_type', 'content'),
+                    "source_doc": inclusion.source_doc,
+                    "temporal_lookup": False,  # v13.0: Static lookup
                 })
 
         return json.dumps({
@@ -944,28 +1242,44 @@ def check_material_composition(hts_code: str, materials: str, product_value: flo
             split_threshold = float(mat.split_threshold_pct) if mat.split_threshold_pct else None
             content_basis = mat.content_basis or "value"
 
-            # Determine if we should split lines
-            do_split = should_split_lines(
-                total_value=product_value or 0,
-                content_value=content_value or 0,
-                split_policy=split_policy,
-                split_threshold_pct=split_threshold
-            )
+            # Phase 11: Get article_type for Note 16 compliance
+            # - 'primary': Ch 72/76 raw materials → full value, no split
+            # - 'derivative': Ch 73 steel articles → full value, no split
+            # - 'content': Other chapters → content value only, split lines
+            article_type = getattr(mat, 'article_type', 'content') or 'content'
+
+            # Phase 11: For primary and derivative articles, duty is on FULL VALUE
+            # per U.S. Note 16 - no value slicing allowed
+            if article_type in ('primary', 'derivative'):
+                # Full value assessment - override content_value to use product_value
+                duty_base_value = product_value or 0
+                non_content_value = 0  # No non-metal slice for primary/derivative
+                do_split = False  # Never split primary/derivative articles
+                value_source = "full_value_note16"
+            else:
+                # Content-based assessment - use content_value
+                duty_base_value = content_value or 0
+                non_content_value = (product_value or 0) - (content_value or 0) if product_value else None
+                # Determine if we should split lines (only for 'content' type)
+                do_split = should_split_lines(
+                    total_value=product_value or 0,
+                    content_value=content_value or 0,
+                    split_policy=split_policy,
+                    split_threshold_pct=split_threshold
+                )
 
             # For Phase 6 content-value basis:
-            # - If content_value > 0: claim (duty on content value)
-            # - If content_value == 0 or None: disclaim (no duty)
+            # - If duty_base_value > 0: claim (duty on that value)
+            # - If duty_base_value == 0 or None: disclaim (no duty)
             threshold = float(mat.threshold_percent) if mat.threshold_percent else 0
 
-            if content_value and content_value > 0:
+            if duty_base_value and duty_base_value > 0:
                 action = "claim"
                 code = mat.claim_code
                 any_claims = True
-                non_content_value = (product_value or 0) - content_value if product_value else None
             else:
                 action = "disclaim"
                 code = mat.disclaim_code
-                non_content_value = product_value if product_value else None
 
             results.append({
                 "material": material_name,
@@ -974,10 +1288,10 @@ def check_material_composition(hts_code: str, materials: str, product_value: flo
                 "action": action,
                 "chapter_99_code": code,
                 "duty_rate": float(mat.duty_rate) if action == "claim" else 0,
-                "applies_to": "partial" if action == "claim" else "none",
+                "applies_to": "full" if article_type in ('primary', 'derivative') else ("partial" if action == "claim" else "none"),
                 "source_doc": mat.source_doc,
                 # Phase 6: Content-value fields
-                "content_value": content_value,
+                "content_value": duty_base_value,  # Phase 11: Now reflects full value for primary/derivative
                 "non_content_value": non_content_value,
                 "mass_kg": mass_kg,
                 "value_source": value_source,
@@ -986,6 +1300,8 @@ def check_material_composition(hts_code: str, materials: str, product_value: flo
                 "split_policy": split_policy,
                 "claim_code": mat.claim_code,
                 "disclaim_code": mat.disclaim_code,
+                # Phase 11: Article type for downstream IEEPA exemption logic
+                "article_type": article_type,
             })
 
         return json.dumps({
@@ -1657,6 +1973,56 @@ def plan_entry_slices(hts_code: str, product_value: float, materials: str, appli
     # Find applicable 232 programs
     applicable_232 = [p for p in programs if get_program_id(p).startswith("section_232_")]
 
+    # Phase 11: Check article_type for Note 16 compliance
+    # For primary/derivative articles, NO slicing - single entry with full value
+    # IMPORTANT: Only apply full-value logic if ALL metals in composition are primary/derivative
+    # Mixed products (e.g., copper primary + aluminum content) should slice normally
+    hts_8digit = hts_code.replace(".", "")[:8]
+
+    app = get_flask_app()
+    with app.app_context():
+        models = get_models()
+        Section232Material = models["Section232Material"]
+
+        # Check article_type for each material in the composition
+        materials_in_composition = [metal for metal in composition.keys() if metal in ["copper", "steel", "aluminum"]]
+        all_primary_or_derivative = True
+        single_metal_type = None
+
+        for metal in materials_in_composition:
+            mat_232 = Section232Material.query.filter_by(hts_8digit=hts_8digit, material=metal).first()
+            if mat_232:
+                article_type = getattr(mat_232, 'article_type', 'content') or 'content'
+                if article_type not in ('primary', 'derivative'):
+                    all_primary_or_derivative = False
+                    break
+                single_metal_type = article_type  # Track for single-material case
+            else:
+                all_primary_or_derivative = False
+                break
+
+    # Phase 11: Only for SINGLE primary/derivative material, return single full_product slice
+    # Per U.S. Note 16: Duty is assessed on FULL value, no content slicing
+    # For mixed materials (e.g., copper + aluminum), slice normally even if copper is primary
+    if len(materials_in_composition) == 1 and all_primary_or_derivative and applicable_232:
+        # Single material that is primary/derivative - full value, no slicing
+        first_metal = materials_in_composition[0]
+
+        return json.dumps({
+            "slice_count": 1,
+            "slices": [{
+                "entry_id": f"{first_metal}_full" if first_metal else "full_product",
+                "slice_type": f"{first_metal}_slice" if first_metal else "full",
+                "base_hts": hts_code,
+                "value": product_value,  # Full value for primary/derivative
+                "materials": composition,
+                "article_type": single_metal_type,
+                "note16_full_value": True
+            }],
+            "reason": f"Article type '{single_metal_type}' - Note 16 requires full value assessment, no slicing",
+            "article_type": single_metal_type
+        })
+
     # Get materials that have 232 programs AND have value > 0
     # v6.0: Support both percentage format (0.05 = 5%) and dollar value format (500.0 = $500)
     materials_with_232 = {}
@@ -1697,7 +2063,7 @@ def plan_entry_slices(hts_code: str, product_value: float, materials: str, appli
             }]
         })
 
-    # Calculate slices
+    # Calculate slices (for 'content' type articles only)
     slices = []
     metal_total = sum(materials_with_232.values())
     non_metal_value = product_value - metal_total
@@ -1727,7 +2093,8 @@ def plan_entry_slices(hts_code: str, product_value: float, materials: str, appli
         "slice_count": len(slices),
         "metal_total": metal_total,
         "non_metal_value": non_metal_value,
-        "slices": slices
+        "slices": slices,
+        "article_type": article_type or "content"
     })
 
 
@@ -1787,26 +2154,59 @@ def check_annex_ii_exclusion(hts_code: str, import_date: Optional[str] = None) -
 
 
 @tool
-def resolve_reciprocal_variant(hts_code: str, slice_type: str, us_content_pct: Optional[float] = None, import_date: Optional[str] = None) -> str:
+def resolve_reciprocal_variant(
+    hts_code: str,
+    slice_type: str,
+    us_content_pct: Optional[float] = None,
+    import_date: Optional[str] = None,
+    article_type: Optional[str] = None,
+    country_code: Optional[str] = None
+) -> str:
     """
     v4.0: Determine IEEPA Reciprocal variant for a given slice.
+    v11.0: Added article_type for Note 16 full-value exemption.
+    v12.0: Added Annex II energy product exemption check.
+    v13.0: Added country_code for temporal rate lookups.
 
     Priority order:
-    1. annex_ii_exempt - If HTS is in Annex II exclusion list
-    2. us_content_exempt - If US content >= 20%
-    3. metal_exempt - If slice is a 232 metal slice (copper_slice, steel_slice, aluminum_slice)
-    4. taxable - Default, pay 10% reciprocal tariff
+    1. annex_ii_energy_exempt - If HTS is an Annex II energy product (propane, LPG, etc.)
+    2. annex_ii_exempt - If HTS is in Annex II exclusion list (DB lookup)
+    3. us_content_exempt - If US content >= 20%
+    4. note16_full_exempt - If article_type is 'primary' or 'derivative' (entire article subject to 232)
+    5. metal_exempt - If slice is a 232 metal slice (copper_slice, steel_slice, aluminum_slice)
+    6. taxable - Default, pay 10% reciprocal tariff
 
     Args:
         hts_code: The 10-digit HTS code
         slice_type: Slice type: 'full', 'non_metal', 'copper_slice', 'steel_slice', 'aluminum_slice'
         us_content_pct: US content percentage (0.0-1.0), if known
         import_date: Date of import (YYYY-MM-DD)
+        article_type: Phase 11 - 'primary', 'derivative', or 'content' per U.S. Note 16
+        country_code: v13.0 - ISO 2-letter country code for temporal rate lookup
 
     Returns:
         JSON with variant, action, chapter_99_code, and duty_rate
     """
-    # Priority 1: Check Annex II exclusion
+    # v13.0: Use temporal lookups for all reciprocal variants
+    # Get rate data for each variant type (with fallback to hardcoded)
+    annex_ii_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'annex_ii_exempt')
+    us_content_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'us_content_exempt')
+    sec232_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'section_232_exempt')
+    standard_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'standard')
+
+    # Priority 1: Check Annex II energy product exemption (v12.0)
+    # This uses the CSV/hardcoded list of energy products (propane, LPG, petroleum, etc.)
+    energy_exempt = is_annex_ii_energy_exempt(hts_code)
+    if energy_exempt.get('exempt'):
+        return json.dumps({
+            "variant": "annex_ii_exempt",
+            "action": "exempt",
+            "chapter_99_code": annex_ii_rate['code'],  # 9903.01.32
+            "duty_rate": 0.0,
+            "reason": f"HTS {hts_code} is Annex II energy product: {energy_exempt.get('description')}"
+        })
+
+    # Priority 2: Check Annex II exclusion (DB lookup for non-energy products)
     annex_ii_result = check_annex_ii_exclusion.invoke({"hts_code": hts_code, "import_date": import_date})
     annex_ii_data = json.loads(annex_ii_result)
 
@@ -1814,38 +2214,50 @@ def resolve_reciprocal_variant(hts_code: str, slice_type: str, us_content_pct: O
         return json.dumps({
             "variant": "annex_ii_exempt",
             "action": "exempt",
-            "chapter_99_code": "9903.01.32",
+            "chapter_99_code": annex_ii_rate['code'],  # 9903.01.32
             "duty_rate": 0.0,
             "reason": f"HTS {hts_code} is in Annex II exclusion list ({annex_ii_data.get('category')})"
         })
 
-    # Priority 2: US content exemption
+    # Priority 3: US content exemption
     if us_content_pct is not None and us_content_pct >= 0.20:
         return json.dumps({
             "variant": "us_content_exempt",
             "action": "exempt",
-            "chapter_99_code": "9903.01.34",
+            "chapter_99_code": us_content_rate['code'],  # 9903.01.34
             "duty_rate": 0.0,
             "reason": f"US content ({us_content_pct*100:.1f}%) >= 20% threshold"
         })
 
-    # Priority 3: 232 metal slice exemption
+    # Priority 4: Phase 11 - Note 16 full-value exemption
+    # For primary/derivative articles, the ENTIRE article is subject to 232,
+    # so the ENTIRE value is exempt from IEEPA Reciprocal
+    if article_type in ('primary', 'derivative'):
+        return json.dumps({
+            "variant": "note16_full_exempt",
+            "action": "exempt",
+            "chapter_99_code": sec232_rate['code'],  # 9903.01.33
+            "duty_rate": 0.0,
+            "reason": f"Article type '{article_type}' - entire article subject to 232, 100% exempt from Reciprocal per Note 16"
+        })
+
+    # Priority 5: 232 metal slice exemption (for 'content' type articles)
     metal_slices = ["copper_slice", "steel_slice", "aluminum_slice"]
     if slice_type in metal_slices:
         return json.dumps({
             "variant": "metal_exempt",
             "action": "exempt",
-            "chapter_99_code": "9903.01.33",
+            "chapter_99_code": sec232_rate['code'],  # 9903.01.33
             "duty_rate": 0.0,
             "reason": f"Slice type '{slice_type}' is 232 metal content, exempt from Reciprocal"
         })
 
-    # Default: Taxable
+    # Priority 6: Taxable (no exemption applies)
     return json.dumps({
         "variant": "taxable",
         "action": "paid",
-        "chapter_99_code": "9903.01.25",
-        "duty_rate": 0.10,
+        "chapter_99_code": standard_rate['code'],  # 9903.01.25
+        "duty_rate": standard_rate['rate'],  # 0.10
         "reason": "No exemption applies, subject to 10% IEEPA Reciprocal tariff"
     })
 
@@ -1908,11 +2320,23 @@ def build_entry_stack(
 
         if program_id == "section_301":
             # Section 301 applies to all slices if product is on 301 list
+            # v8.0: Look up HTS-specific chapter 99 code from section_301_inclusions
             action = "apply"
             variant = None
 
+            # Get the correct chapter 99 code for this specific HTS
+            inclusion_result = check_program_inclusion.invoke({
+                "program_id": "section_301",
+                "hts_code": hts_code
+            })
+            inclusion_data = json.loads(inclusion_result)
+            if inclusion_data.get("included"):
+                chapter_99_code = inclusion_data.get("chapter_99_code")
+                duty_rate = inclusion_data.get("duty_rate")
+
         elif program_id == "ieepa_fentanyl":
             # IEEPA Fentanyl - v6.0: Use data-driven country scope
+            # v12.0: Use correct code 9903.01.24 (NOT 9903.01.25)
             # First normalize country to ISO code
             normalized = normalize_country(country)
             country_iso2 = normalized.get("iso_alpha2") or country
@@ -1927,20 +2351,55 @@ def build_entry_stack(
             if scope_result.get("in_scope"):
                 action = "apply"
                 variant = None
+                # v13.0: Use temporal lookup with fallback to hardcoded
+                fentanyl_rate = get_ieepa_rate_temporal(
+                    program_type='fentanyl',
+                    country_code=country_iso2,
+                    as_of_date=import_date
+                )
+                chapter_99_code = fentanyl_rate['code']
+                duty_rate = fentanyl_rate['rate']
             else:
                 # Fallback for backwards compatibility (until data is populated)
                 # Also includes Macau (MO) per broker feedback
                 if country.lower() in ["china", "cn", "hong kong", "hk", "macau", "mo", "macao"]:
                     action = "apply"
                     variant = None
+                    # v13.0: Use temporal lookup with fallback to hardcoded
+                    fentanyl_rate = get_ieepa_rate_temporal(
+                        program_type='fentanyl',
+                        country_code=country_iso2,
+                        as_of_date=import_date
+                    )
+                    chapter_99_code = fentanyl_rate['code']
+                    duty_rate = fentanyl_rate['rate']
 
         elif program_id == "ieepa_reciprocal":
             # IEEPA Reciprocal: Resolve variant based on slice type and exclusions
+            # Phase 11: Get article_type for Note 16 full-value exemption
+            article_type = None
+            hts_8digit = hts_code.replace(".", "")[:8]
+
+            # v13.0: Normalize country for temporal lookups
+            normalized = normalize_country(country)
+            country_iso2 = normalized.get("iso_alpha2") or country
+
+            # Look up article_type from section_232_materials (if any 232 materials apply)
+            app = get_flask_app()
+            with app.app_context():
+                models = get_models()
+                Section232Material = models["Section232Material"]
+                mat_232 = Section232Material.query.filter_by(hts_8digit=hts_8digit).first()
+                if mat_232:
+                    article_type = getattr(mat_232, 'article_type', 'content') or 'content'
+
             variant_result = resolve_reciprocal_variant.invoke({
                 "hts_code": hts_code,
                 "slice_type": slice_type,
                 "us_content_pct": us_content_pct,
-                "import_date": import_date
+                "import_date": import_date,
+                "article_type": article_type,
+                "country_code": country_iso2  # v13.0: Pass for temporal rate lookups
             })
             variant_data = json.loads(variant_result)
             variant = variant_data.get("variant")

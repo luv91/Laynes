@@ -1,7 +1,11 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 
 from app.web.db import db, init_db_command
+
+# Flask-Migrate instance
+migrate = Migrate()
 from app.web.db import models
 from app.celery import celery_init_app
 from app.web.config import Config
@@ -13,6 +17,7 @@ from app.web.views import (
     client_views,
     conversation_views,
     tariff_views,
+    admin_views,
 )
 
 
@@ -32,6 +37,7 @@ def create_app():
 
 def register_extensions(app):
     db.init_app(app)
+    migrate.init_app(app, db)
     app.cli.add_command(init_db_command)
 
 
@@ -41,6 +47,7 @@ def register_blueprints(app):
     app.register_blueprint(score_views.bp)
     app.register_blueprint(conversation_views.bp)
     app.register_blueprint(tariff_views.bp)
+    app.register_blueprint(admin_views.bp)
     app.register_blueprint(client_views.bp)
 
 

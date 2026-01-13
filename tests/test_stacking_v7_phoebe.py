@@ -525,11 +525,15 @@ def test_v7_006_annex_ii_exemption():
         Value: $842.40
         Quantity: 27
         Materials: aluminum=$126.36
+        Import Date: 2024-07-15 (inside exclusion window: 2024-06-15 to 2025-05-31)
 
     Expected:
         - 2 slices (residual, aluminum_claim)
         - Uses 9903.01.32 (Annex II exempt) for IEEPA Reciprocal
-        - Uses 9903.88.69 (different 301 list)
+        - Uses 9903.88.69 (Section 301 exclusion) - takes precedence over 9903.88.03
+
+    Note: The exclusion code 9903.88.69 is only valid within its time window.
+    After 2025-05-31, the base duty code 9903.88.03 (List 3) applies.
     """
     result = TestResult("TC-v7.0-006: Annex II Exemption")
 
@@ -539,7 +543,8 @@ def test_v7_006_annex_ii_exemption():
         country="China",
         product_description="Computer parts with aluminum housing",
         product_value=842.40,
-        materials={"aluminum": 126.36}
+        materials={"aluminum": 126.36},
+        import_date="2024-07-15"  # Date inside exclusion window
     )
 
     entries = output.get("entries", [])
@@ -572,6 +577,114 @@ def test_v7_006_annex_ii_exemption():
                 s301_codes[0].get("chapter_99_code") == "9903.88.69",
                 f"301 code should be 9903.88.69, got {s301_codes[0].get('chapter_99_code')}"
             )
+
+    return result
+
+
+def test_v7_007_derivative_article_note16():
+    """
+    TC-v7.0-007: Derivative Article - Note 16 Full Value Assessment
+
+    Source: Design Flaw Fix (readme-design-flaws-1-document.md)
+
+    This test verifies the fix for derivative articles per U.S. Note 16 to Chapter 99.
+
+    Input:
+        HTS: 7317.00.5502 (Steel nails - Chapter 73 derivative article)
+        Country: CN
+        Value: $10,000
+        Materials: steel=$6,000 (60%)
+
+    Expected:
+        - 1 slice with full $10,000 value (NOT $6,000 content value)
+        - Section 232 code: 9903.81.89 (derivative, NOT 9903.80.01 primary)
+        - IEEPA Reciprocal: 9903.01.33 @ 0% (Note 16 full exempt)
+        - Total duty: $8,500 (85%), NOT $6,900 (69%)
+
+    Key behaviors tested:
+        1. article_type='derivative' triggers full value assessment
+        2. Derivative steel uses 9903.81.89 (not primary code 9903.80.01)
+        3. IEEPA Reciprocal is 100% exempt for derivative articles (Note 16)
+    """
+    result = TestResult("TC-v7.0-007: Derivative Article - Note 16 Full Value (Steel Nails)")
+
+    stacking = StackingRAG(conversation_id="test-v7-007")
+    output = stacking.calculate_stacking(
+        hts_code="7317.00.5502",
+        country="China",
+        product_description="Steel nails (Ch 73 derivative)",
+        product_value=10000.00,
+        materials={"steel": 6000.00}
+    )
+
+    entries = output.get("entries", [])
+
+    # Check for single slice
+    result.check(
+        len(entries) == 1,
+        f"Expected 1 entry (full value, no slicing), got {len(entries)}"
+    )
+
+    if entries:
+        entry = entries[0]
+
+        # Check line value is full $10,000 (not $6,000 steel content)
+        result.check(
+            abs(entry.get("line_value", 0) - 10000.00) < 0.01,
+            f"Line value should be $10,000.00 (full), got ${entry.get('line_value', 0):.2f}"
+        )
+
+        stack = entry.get("stack", [])
+
+        # Check Section 232 Steel code is derivative (9903.81.89)
+        steel_codes = [l for l in stack if l.get("program_id") == "section_232_steel"]
+        result.check(
+            len(steel_codes) == 1,
+            f"Expected 1 Section 232 Steel code, got {len(steel_codes)}"
+        )
+        if steel_codes:
+            result.check(
+                steel_codes[0].get("chapter_99_code") == "9903.81.89",
+                f"Section 232 Steel should use derivative code 9903.81.89, got {steel_codes[0].get('chapter_99_code')}"
+            )
+
+        # Check IEEPA Reciprocal is Note 16 exempt (9903.01.33 @ 0%)
+        recip_codes = [l for l in stack if l.get("program_id") == "ieepa_reciprocal"]
+        result.check(
+            len(recip_codes) == 1,
+            f"Expected 1 IEEPA Reciprocal code, got {len(recip_codes)}"
+        )
+        if recip_codes:
+            result.check(
+                recip_codes[0].get("chapter_99_code") == "9903.01.33",
+                f"IEEPA Reciprocal should be 9903.01.33 (Note 16 exempt), got {recip_codes[0].get('chapter_99_code')}"
+            )
+            result.check(
+                recip_codes[0].get("variant") == "note16_full_exempt",
+                f"IEEPA Reciprocal variant should be 'note16_full_exempt', got {recip_codes[0].get('variant')}"
+            )
+            result.check(
+                recip_codes[0].get("duty_rate") == 0.0,
+                f"IEEPA Reciprocal duty_rate should be 0.0, got {recip_codes[0].get('duty_rate')}"
+            )
+
+    # Check total duty is $8,500 (85%)
+    total_duty = output.get("total_duty", {})
+    if isinstance(total_duty, dict):
+        duty_amount = total_duty.get("total_duty_amount", 0)
+        effective_rate = total_duty.get("effective_rate", 0)
+    else:
+        duty_amount = total_duty or 0
+        effective_rate = 0
+
+    result.check(
+        abs(duty_amount - 8500.00) < 0.01,
+        f"Total duty should be $8,500.00, got ${duty_amount:.2f}"
+    )
+    result.check(
+        abs(effective_rate - 0.85) < 0.001,
+        f"Effective rate should be 85%, got {effective_rate*100:.1f}%"
+    )
 
     return result
 
@@ -639,6 +752,7 @@ def run_all_tests(verbose=False):
         test_v7_004_copper_full_claim,
         test_v7_005_steel_aluminum_with_residual,
         test_v7_006_annex_ii_exemption,
+        test_v7_007_derivative_article_note16,  # New: Ch 73 derivative full value test
         test_v7_no_steel_aluminum_disclaim_codes,
     ]
 

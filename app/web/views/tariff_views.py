@@ -4,8 +4,10 @@ Clean form-based UI for tariff calculation.
 """
 
 import uuid
+from datetime import date
 from flask import Blueprint, request, jsonify, render_template_string
 from app.chat.graphs.stacking_rag import StackingRAG
+from app.services.freshness import get_freshness_service
 
 bp = Blueprint("tariff", __name__)
 
@@ -69,6 +71,14 @@ def calculate_tariff():
 
         # Return results
         total_duty = result.get("total_duty") or {}
+
+        # Get freshness info
+        try:
+            freshness_service = get_freshness_service()
+            freshness = freshness_service.get_all_freshness()
+        except Exception:
+            freshness = {}
+
         return jsonify({
             "success": True,
             "session_id": None,
@@ -82,9 +92,45 @@ def calculate_tariff():
             # Calculation results
             "entries": result.get("entries", []),
             "total_duty": total_duty,
-            "effective_rate": total_duty.get("effective_rate", 0)
+            "effective_rate": total_duty.get("effective_rate", 0),
+            # Data freshness
+            "data_freshness": freshness,
         })
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/tariff/freshness", methods=["GET"])
+def get_freshness():
+    """Get data freshness information for all sources."""
+    try:
+        freshness_service = get_freshness_service()
+        freshness = freshness_service.get_all_freshness()
+
+        return jsonify({
+            "success": True,
+            "freshness": freshness,
+            "timestamp": date.today().isoformat(),
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/tariff/freshness/<program_id>", methods=["GET"])
+def get_program_freshness(program_id: str):
+    """Get data freshness for a specific program."""
+    try:
+        freshness_service = get_freshness_service()
+        freshness = freshness_service.get_program_freshness(program_id)
+
+        if "error" in freshness:
+            return jsonify({"success": False, "error": freshness["error"]}), 404
+
+        return jsonify({
+            "success": True,
+            "freshness": freshness,
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -401,6 +447,51 @@ CALCULATOR_HTML = '''
             color: #1e293b;
             font-size: 14px;
         }
+        /* Freshness indicator styles */
+        .freshness-indicator {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        .freshness-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        .freshness-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .freshness-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .freshness-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .freshness-current .freshness-dot { background: #10b981; }
+        .freshness-stale .freshness-dot { background: #f59e0b; }
+        .freshness-outdated .freshness-dot { background: #ef4444; }
+        .freshness-unknown .freshness-dot { background: #94a3b8; }
+        .freshness-name {
+            color: #374151;
+            font-weight: 500;
+        }
+        .freshness-time {
+            color: #94a3b8;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -527,6 +618,14 @@ CALCULATOR_HTML = '''
 
             <div class="entries-title">ACE Entry Slices</div>
             <div id="entries"></div>
+
+            <!-- Freshness indicator -->
+            <div class="freshness-indicator" id="freshnessIndicator">
+                <div class="freshness-title">Data Sources</div>
+                <div class="freshness-grid" id="freshnessGrid">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
 
             <button class="new-calc-btn" onclick="resetForm()">New Calculation</button>
         </div>
@@ -812,6 +911,10 @@ CALCULATOR_HTML = '''
             }).join('');
 
             document.getElementById('entries').innerHTML = entriesHtml;
+
+            // Populate freshness indicators
+            displayFreshness(result.data_freshness);
+
             document.getElementById('formCard').style.display = 'none';
             document.getElementById('result').classList.add('show');
         }
@@ -825,6 +928,36 @@ CALCULATOR_HTML = '''
             document.getElementById('copperValue').value = '';
             document.getElementById('steelValue').value = '';
             document.getElementById('aluminumValue').value = '';
+        }
+
+        function displayFreshness(freshness) {
+            if (!freshness || typeof freshness !== 'object') {
+                document.getElementById('freshnessIndicator').style.display = 'none';
+                return;
+            }
+
+            // Programs to display (order matters)
+            const programs = ['section_301', 'section_232', 'ieepa_fentanyl', 'mfn_base_rates'];
+
+            const freshnessHtml = programs
+                .filter(id => freshness[id])
+                .map(id => {
+                    const info = freshness[id];
+                    const statusClass = info.status_class || 'freshness-unknown';
+                    const name = info.name || id;
+                    const time = info.last_updated_display || 'Unknown';
+
+                    return `
+                        <div class="freshness-item ${statusClass}">
+                            <span class="freshness-dot"></span>
+                            <span class="freshness-name">${name}</span>
+                            <span class="freshness-time">${time}</span>
+                        </div>
+                    `;
+                }).join('');
+
+            document.getElementById('freshnessGrid').innerHTML = freshnessHtml;
+            document.getElementById('freshnessIndicator').style.display = 'block';
         }
     </script>
 </body>

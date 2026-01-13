@@ -1,0 +1,38 @@
+hts_prefix,description,exemption_code,category,source,effective_date
+2709.00,Crude petroleum oils,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2710.12,Light petroleum oils and preparations,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.11,Natural gas liquefied (LNG),9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.12,Propane liquefied,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.13,Butanes liquefied,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.14,"Ethylene, propylene, butylene, butadiene liquefied",9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.19,Other liquefied petroleum gases (LPG),9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.21,Natural gas in gaseous state,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2711.29,Other petroleum gases in gaseous state,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2701,Coal and solid fuels from coal,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2702,Lignite,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2704,Coke and semi-coke,9903.01.32,energy,Annex II EO 14257,2025-04-05
+2716,Electrical energy,9903.01.32,energy,Annex II EO 14257,2025-04-05
+7403,Refined copper and copper alloys unwrought,9903.01.32,critical_mineral,Annex II EO 14257 (pending 232),2025-04-05
+7404,Copper waste and scrap,9903.01.32,critical_mineral,Annex II EO 14257 (pending 232),2025-04-05
+7405,Master alloys of copper,9903.01.32,critical_mineral,Annex II EO 14257 (pending 232),2025-04-05
+7406,Copper powders and flakes,9903.01.32,critical_mineral,Annex II EO 14257 (pending 232),2025-04-05
+2603,Copper ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
+2607,Lead ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
+2609,Tin ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
+2612,Uranium or thorium ores,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
+2844.40,Radioactive elements and isotopes,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
+8541.10,Diodes (semiconductor devices),9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.21,Transistors with dissipation < 1W,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.29,Other transistors,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.30,Thyristors diacs and triacs,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.40,Photosensitive semiconductor devices,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.50,Other semiconductor devices,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541.60,Mounted piezoelectric crystals,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8542,Electronic integrated circuits,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+3002,Human blood and animal blood vaccines,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+3003,Medicaments not in dosage form,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+3004,Medicaments in dosage form,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+3006,Pharmaceutical goods,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+4401,Fuel wood and wood chips,9903.01.32,lumber,Annex II EO 14257,2025-04-05
+4403,Wood in the rough,9903.01.32,lumber,Annex II EO 14257,2025-04-05
+4407,Wood sawn or chipped lengthwise,9903.01.32,lumber,Annex II EO 14257,2025-04-05
