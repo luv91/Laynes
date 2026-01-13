@@ -29,6 +29,7 @@ python-dotenv
 click
 invoke
 pypdf
+beautifulsoup4
 langchain-text-splitters
 backoff
 colorama
