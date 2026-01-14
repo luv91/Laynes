@@ -28,9 +28,11 @@ jobs:
       - name: Poll All Regulatory Sources
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/run_watchers.py \
             --all \
@@ -40,8 +42,10 @@ jobs:
       - name: Process Queue
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/process_ingest_queue.py --max-jobs 50
 
