@@ -1,2 +1,4 @@
 [deploy]
-startCommand = "python scripts/populate_tariff_tables.py --reset && python scripts/import_2024_review_rates.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT"
+# v16.0: Single command - unified temporal CSV includes all rates (legacy + 2024 review)
+# No more chaining multiple import scripts!
+startCommand = "python scripts/populate_tariff_tables.py --reset && gunicorn wsgi:app --bind 0.0.0.0:$PORT"

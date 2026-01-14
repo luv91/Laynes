@@ -1,6 +1,6 @@
 # Unified Temporal Tariff Pipeline - Complete System Architecture
 
-**Version:** 14.0
+**Version:** 13.0
 **Date:** January 2026
 **Status:** Production Ready
 
@@ -19,7 +19,6 @@
 9. [Data Flow Diagrams](#9-data-flow-diagrams)
 10. [Database Schema Reference](#10-database-schema-reference)
 11. [Operational Commands](#11-operational-commands)
-12. [Write Gate: Dual-LLM Verification Pipeline](#12-write-gate-dual-llm-verification-pipeline)
 
 ---
 
@@ -1377,363 +1376,426 @@ The Unified Temporal Tariff Pipeline provides:
 - `scripts/migrate_ieepa_to_temporal.py` - Standalone migration script
 - `tests/test_temporal_queries.py` - Temporal query test cases
 
----
-
-## 12. Write Gate: Dual-LLM Verification Pipeline
-
-### 12.1 The Problem
-
-Before Write Gate, temporal table updates were **manual**:
-
-```
-Notice Published → Watcher Detects → Connector Extracts → RAG Works
-                                                              ↓
-                                          BUT temporal tables need manual script ❌
-```
-
-**Result:** RAG could answer "Is HTS X in scope?" but duty calculation failed until someone manually ran `populate_tariff_tables.py`.
-
-### 12.2 The Solution: Dual-LLM Verification
-
-Write Gate automates temporal table updates with **two independent LLMs** to prevent hallucinations:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    DUAL-LLM VERIFICATION PIPELINE                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  STEP 1: EXTRACTOR (Gemini)                                                │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Input: Raw document text (CBP CSMS, Federal Register, USITC)       │   │
-│  │                                                                      │   │
-│  │  Prompt: "Extract all HTS codes, duty rates, effective dates..."    │   │
-│  │                                                                      │   │
-│  │  Output: {                                                           │   │
-│  │    hts_codes: ["8302.41.6015", "8302.41.6050"],                     │   │
-│  │    program: "section_232_steel",                                     │   │
-│  │    chapter_99_code: "9903.81.91",                                   │   │
-│  │    duty_rate: 0.25,                                                  │   │
-│  │    effective_date: "2025-08-18",                                     │   │
-│  │    quotes: ["HTS 8302.41.6015 shall be subject to..."]              │   │
-│  │  }                                                                   │   │
-│  └────────────────────────┬────────────────────────────────────────────┘   │
-│                           ↓                                                 │
-│  STEP 2: VERIFIER (GPT-4o)                                                 │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Input: Extraction + Original Document                               │   │
-│  │                                                                      │   │
-│  │  Task: "Find EXACT QUOTES in the document that PROVE each field"    │   │
-│  │                                                                      │   │
-│  │  Verification:                                                       │   │
-│  │    ✓ "8302.41.6015" → FOUND: "Line 47: HTS 8302.41.6015..."        │   │
-│  │    ✓ "25 percent"   → FOUND: "Line 52: duty rate of 25 percent"     │   │
-│  │    ✓ "2025-08-18"   → FOUND: "Line 3: effective August 18, 2025"   │   │
-│  │    ✓ "Section 232"  → FOUND: "Line 1: Section 232 - Steel..."       │   │
-│  │                                                                      │   │
-│  │  Output: {                                                           │   │
-│  │    verified: true,                                                   │   │
-│  │    confidence: 0.95,                                                 │   │
-│  │    evidence: {hts_codes: {found: true, quote: "..."}, ...}          │   │
-│  │  }                                                                   │   │
-│  └────────────────────────┬────────────────────────────────────────────┘   │
-│                           ↓                                                 │
-│  STEP 3: WRITE GATE (Auto-Insert)                                          │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  IF verified == true AND confidence >= 0.85:                        │   │
-│  │    → INSERT INTO section_232_rates (hts_8digit, duty_rate, ...)     │   │
-│  │    → Log to ingestion_runs with evidence quotes                     │   │
-│  │  ELSE:                                                               │   │
-│  │    → Log warning: "Verification failed for field X"                 │   │
-│  │    → SKIP insert (no bad data in production)                        │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 12.3 Why Two LLMs?
-
-The key insight: **The verifier doesn't "know" independently - it SEARCHES the document for proof.**
-
-| Problem | Without Verification | With Dual-LLM |
-|---------|---------------------|---------------|
-| Hallucinated rate | Extractor outputs 25% when doc says 10% | Verifier can't find "25%" quote → REJECTED |
-| Wrong HTS code | Extractor misreads 8302 as 8032 | Verifier searches for "8032" → NOT FOUND → REJECTED |
-| Missing date | Extractor guesses effective date | Verifier can't find date quote → REJECTED |
-| Correct extraction | All values extracted correctly | Verifier finds all quotes → APPROVED |
-
-**Example: Catching a Hallucination**
-
-```
-Document says: "HTS 8544.42.90 effective January 15, 2026"
-               (No rate mentioned!)
-
-Extractor (Gemini) outputs: {hts: "8544.42.90", rate: 0.25}  ← HALLUCINATION!
-
-Verifier (GPT-4) searches document:
-  - "8544.42.90" → FOUND ✓
-  - "25%" or "twenty-five percent" → NOT FOUND ❌
-
-Verifier returns: {verified: false, missing_fields: ["duty_rate"]}
-
-Write Gate: SKIPS INSERT (rate not verified)
-```
-
-### 12.4 Implementation Files
-
-| File | Purpose | LLM Used |
-|------|---------|----------|
-| `app/services/extractor_llm.py` | Extract structured tariff data | Gemini 2.5 Flash |
-| `app/services/verifier_llm.py` | Verify by finding exact quotes | GPT-4o |
-| `app/services/write_gate.py` | Auto-insert if verified | N/A |
-| `app/watchers/pipeline.py` | End-to-end orchestration | N/A |
-
-### 12.5 Data Models
-
-#### ExtractionResult
-
-```python
-@dataclass
-class ExtractionResult:
-    hts_codes: List[str]           # ["8302.41.6015", "8302.41.6050"]
-    program: str                   # "section_232_steel"
-    chapter_99_code: str           # "9903.81.91"
-    duty_rate: float               # 0.25
-    effective_date: date           # 2025-08-18
-    action: str                    # "add_to_scope"
-
-    # Program-specific
-    list_name: Optional[str]       # For 301: "list_3", "list_4a"
-    material_type: Optional[str]   # For 232: "steel", "aluminum", "copper"
-    country_code: Optional[str]    # For IEEPA: "CN", "MX"
-
-    # Evidence (from document)
-    quotes: List[str]              # Verbatim quotes supporting extraction
-
-    # Metadata
-    success: bool
-    model: str                     # "gemini-2.5-flash"
-```
-
-#### VerificationResult
-
-```python
-@dataclass
-class VerificationResult:
-    verified: bool                 # All critical fields have evidence
-    confidence: float              # 0.0 - 1.0
-
-    evidence: Dict[str, FieldEvidence]  # Per-field evidence
-    # {
-    #   "hts_codes": {found: true, quote: "...", location: "paragraph 3"},
-    #   "duty_rate": {found: true, quote: "...", location: "paragraph 5"},
-    # }
-
-    missing_fields: List[str]      # Fields with no evidence found
-    verified_fields: List[str]     # Fields with evidence found
-    verifier_notes: str            # LLM's explanation
-```
-
-#### WriteResult
-
-```python
-@dataclass
-class WriteResult:
-    success: bool                  # True if rows inserted
-    rows_inserted: int             # Number of temporal rows added
-    table: str                     # "section_232_rates", "section_301_rates"
-
-    extraction: ExtractionResult   # What was extracted
-    verification: VerificationResult  # Verification details
-
-    document_source: str           # "CSMS #65936570"
-    ingestion_run_id: int          # Audit log ID
-```
-
-### 12.6 Usage: Manual Trigger
-
-The Write Gate is **manually triggered** (not scheduled). When you say **"check for tariff updates"**:
-
-```python
-from app.watchers.pipeline import check_for_updates
-
-# Check last 24 hours of notices
-result = check_for_updates(lookback_hours=24)
-
-print(result)
-# {
-#   "summary": "Pipeline completed in 45.2s: found 3 notices, inserted 12 rows, skipped 1, failed 0",
-#   "notices_found": 3,
-#   "notices_by_source": {"cbp_csms": 2, "federal_register": 1},
-#   "processed": 3,
-#   "inserted": 12,
-#   "skipped": 1,
-#   "failed": 0,
-#   "successes": [
-#     {"source": "CSMS #65936570", "rows": 8, "table": "section_232_rates"},
-#     {"source": "FR 2026-00206", "rows": 4, "table": "section_301_rates"}
-#   ],
-#   "skipped_details": [
-#     {"source": "CSMS #65936571", "reason": "No HTS codes found"}
-#   ]
-# }
-```
-
-### 12.7 Pipeline Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         WRITE GATE PIPELINE FLOW                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   User says: "check for tariff updates"                                     │
-│       │                                                                     │
-│       ▼                                                                     │
-│   ┌─────────────────────────────────────────┐                              │
-│   │  1. POLL WATCHERS (last 24 hours)       │                              │
-│   │     • CBP CSMS                          │                              │
-│   │     • Federal Register                   │                              │
-│   │     • USITC                             │                              │
-│   └────────────────┬────────────────────────┘                              │
-│                    ▼                                                        │
-│   ┌─────────────────────────────────────────┐                              │
-│   │  2. FOR EACH discovered document:       │                              │
-│   │                                          │                              │
-│   │     a) FETCH content (HTML/PDF/XML)     │                              │
-│   │            │                             │                              │
-│   │            ▼                             │                              │
-│   │     b) EXTRACT via Gemini               │                              │
-│   │        {hts_codes, rate, date, ...}     │                              │
-│   │            │                             │                              │
-│   │            ▼                             │                              │
-│   │     c) VERIFY via GPT-4                 │                              │
-│   │        Find exact quotes in document    │                              │
-│   │            │                             │                              │
-│   │            ▼                             │                              │
-│   │     d) WRITE GATE decision:             │                              │
-│   │        ┌──────────────────────────────┐ │                              │
-│   │        │ verified && confidence >= 85% │ │                              │
-│   │        │    ↓ YES          ↓ NO       │ │                              │
-│   │        │ INSERT rows    SKIP + log    │ │                              │
-│   │        └──────────────────────────────┘ │                              │
-│   └────────────────┬────────────────────────┘                              │
-│                    ▼                                                        │
-│   ┌─────────────────────────────────────────┐                              │
-│   │  3. RETURN summary:                     │                              │
-│   │     • Notices found: 3                  │                              │
-│   │     • Rows inserted: 12                 │                              │
-│   │     • Skipped: 1 (no HTS codes)         │                              │
-│   │     • Failed: 0                         │                              │
-│   └─────────────────────────────────────────┘                              │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 12.8 Safety Measures
-
-| Safety Measure | Implementation |
-|----------------|----------------|
-| **Dual-LLM verification** | Gemini extracts, GPT-4 verifies (different models reduce correlated errors) |
-| **Evidence-based** | Only writes if verifier finds EXACT QUOTES from document |
-| **Confidence threshold** | Requires 85%+ confidence to auto-insert |
-| **Deduplication** | Checks for existing rates before inserting |
-| **Audit trail** | Every insert logged to `ingestion_runs` with evidence |
-| **Temporal preservation** | Old rates kept with `effective_end`; never deleted |
-| **Source attribution** | Every row tracks which notice it came from |
-
-### 12.9 Verification Checks
-
-The verifier checks each field by searching for exact quotes:
-
-| Field | Verification Question |
-|-------|----------------------|
-| HTS Codes | "Find quote containing 'XXXX.XX.XX' or 'XXXXXXXX'" |
-| Program | "Find quote with 'Section 301/232' or 'IEEPA'" |
-| Chapter 99 | "Find quote containing '9903.XX.XX'" |
-| Duty Rate | "Find quote with 'X%' or 'X percent'" |
-| Effective Date | "Find quote with date mention" |
-| Action | "Find text like 'added', 'subject to', 'excluded'" |
-
-**Pass criteria:** All critical fields (hts_codes, program, rate OR effective_date) must have evidence quotes.
-
-### 12.10 Test Results
-
-```
-======================================================================
-TEST: Extractor (Gemini 2.5 Flash)
-======================================================================
-
-Input: Sample CSMS document about Section 232 steel derivatives
-
-Output:
-  Program: section_232_steel ✓
-  HTS Codes: ['8302.41.3000', '8302.41.6015', '8302.41.6050'] ✓
-  Chapter 99: 9903.81.91 ✓
-  Duty Rate: 0.25 (25%) ✓
-  Effective Date: 2025-08-18 ✓
-  Material Type: steel ✓
-
-Quotes Extracted:
-  1. "HTS codes have been added to the list of steel derivative articles..."
-  2. "Chapter 99 Code: 9903.81.91..."
-  3. "Duty Rate: 25 percent..."
-  4. "effective August 18, 2025..."
-
-Quick Verify (string match): PASSED ✓
-```
-
-### 12.11 Commands
-
-```bash
-# Check for tariff updates (manual trigger)
-# This is invoked when user says "check for tariff updates"
-pipenv run python -c "
-from app.watchers.pipeline import check_for_updates
-result = check_for_updates(lookback_hours=24)
-print(result['summary'])
-"
-
-# Process a single document manually
-pipenv run python -c "
-from app.services.write_gate import get_write_gate
-
-gate = get_write_gate()
-result = gate.process_document(
-    document_text='...',  # Document content
-    source='CSMS #65936570'
-)
-print(f'Success: {result.success}, Rows: {result.rows_inserted}')
-"
-
-# Test extraction only (without database write)
-pipenv run python -c "
-from app.services.extractor_llm import get_tariff_extractor
-
-extractor = get_tariff_extractor()
-result = extractor.extract(
-    document_text='...',
-    source='test'
-)
-print(f'HTS Codes: {result.hts_codes}')
-print(f'Program: {result.program}')
-"
-```
-
-### 12.12 Environment Variables
-
-Required in `.env`:
-
-```env
-# Gemini API (for extraction)
-GEMINI_API_KEY=AIzaSy...
-
-# OpenAI API (for verification)
-OPENAI_API_KEY=sk-proj-...
-```
-
----
-
-**Files Added for v14.0 Write Gate:**
-- `app/services/extractor_llm.py` - Gemini extraction service
-- `app/services/verifier_llm.py` - GPT-4 verification service
-- `app/services/write_gate.py` - Auto-insert logic + manual trigger
-- `app/watchers/pipeline.py` - End-to-end watcher pipeline
+
+# =======+>
+
+Asked later, and led to this:
+
+ Tariff System Data Flow Documentation
+
+     Date: January 12, 2026
+     Purpose: Document how data flows in the tariff calculation system
+     Status: DOCUMENTATION COMPLETE
+
+     ---
+     Part 1: HTS Lookup Flow (User Query)
+
+     When User Enters an HTS Code
+
+     User Input: HTS 8302.41.6015, Country: China
+                         ↓
+     ┌─────────────────────────────────────────┐
+     │  POST /tariff/calculate                 │
+     │  app/web/views/tariff_views.py          │
+     └─────────────────────────────────────────┘
+                         ↓
+     ┌─────────────────────────────────────────┐
+     │  StackingRAG.calculate_stacking()       │
+     │  app/chat/graphs/stacking_rag.py        │
+     └─────────────────────────────────────────┘
+                         ↓
+              ┌─────────┴─────────┐
+              ↓                   ↓
+     ┌─────────────────┐ ┌─────────────────┐
+     │ Section 301     │ │ Section 232     │
+     │ (China tariffs) │ │ (metals)        │
+     └─────────────────┘ └─────────────────┘
+              ↓                   ↓
+        TEMPORAL FIRST      TEMPORAL FIRST
+              ↓                   ↓
+     ┌─────────────────┐ ┌─────────────────┐
+     │section_301_rates│ │section_232_rates│
+     │ 10,394 rows ✓   │ │ 1,596 rows ✓    │
+     └─────────────────┘ └─────────────────┘
+              ↓ fallback          ↓ fallback
+     ┌─────────────────┐ ┌─────────────────┐
+     │section_301_     │ │section_232_     │
+     │inclusions       │ │materials        │
+     │ 10,407 rows ✓   │ │ 838 rows ✓      │
+     └─────────────────┘ └─────────────────┘
+
+     Lookup Priority
+
+     | Program     | Table 1 (Temporal) | Table 2 (Static Fallback) |
+     |-------------|--------------------|---------------------------|
+     | Section 301 | section_301_rates  | section_301_inclusions    |
+     | Section 232 | section_232_rates  | section_232_materials     |
+     | IEEPA       | ieepa_rates        | program_codes             |
+
+     ---
+     Part 2: Update Flow (New Notices)
+
+     How New Tariff Notices Get Into the System
+
+     Phase 1: Notice Published (External)
+
+     CBP publishes: CSMS#65794272 "Steel tariff scope expanded"
+     Federal Register publishes: 90 FR 12345 "Section 301 modifications"
+
+     Phase 2: Watcher Detection
+
+     Location: app/watchers/
+
+     | Watcher                | Source              | Polling Interval |
+     |------------------------|---------------------|------------------|
+     | CBPCSMSWatcher         | cbp.gov/csms        | Every 12 hours   |
+     | FederalRegisterWatcher | federalregister.gov | Every 6 hours    |
+     | USITCWatcher           | hts.usitc.gov       | On demand        |
+
+     Detection Logic:
+     - Scan for keywords: "section 232", "301", "tariff", "9903"
+     - Extract: CSMS#, effective dates, HTS code patterns
+     - Return: DiscoveredDocument with metadata
+
+     Phase 3: Trusted Extraction
+
+     Location: app/ingestion/connectors/
+
+     | Connector        | Trusted Domains                  | Tier |
+     |------------------|----------------------------------|------|
+     | CSMSConnector    | content.govdelivery.com, cbp.gov | A    |
+     | GovInfoConnector | federalregister.gov, govinfo.gov | A    |
+     | USITCConnector   | hts.usitc.gov                    | A    |
+
+     Extraction Output:
+     ConnectorResult(
+         document_id=uuid,
+         source="CSMS",
+         canonical_id="CSMS#65794272",
+         extracted_text="Clean text from HTML...",
+         sha256_raw="abc123...",           # Change detection
+         hts_codes_found=["8544.42.90"],   # Regex extracted
+         programs_found=["section_232_steel"],
+         effective_start=date(2026, 1, 15)
+     )
+
+     Phase 4: Database Storage
+
+     Location: app/web/db/models/document.py
+
+     documents table:
+     ├─ id: uuid
+     ├─ source: "CSMS"
+     ├─ canonical_id: "CSMS#65794272"
+     ├─ extracted_text: "Full clean text..."
+     ├─ sha256_raw: "abc123..."
+     ├─ hts_codes_mentioned: ["8544.42.90"]
+     └─ published_at, effective_start
+
+     Phase 5: Chunking for RAG
+
+     Location: app/ingestion/chunker.py
+
+     DocumentChunker(
+         min_chunk_size=200,    # Avoid tiny fragments
+         max_chunk_size=1200,   # Fit in context window
+         overlap=50,            # Maintain continuity
+         strategy="paragraph"   # Split by paragraphs
+     )
+
+     Output:
+     document_chunks table:
+     ├─ chunk_index: 0, 1, 2...
+     ├─ text: "200-1200 char chunk"
+     ├─ char_start, char_end: Position in original
+     ├─ text_hash: SHA-256 for dedup
+     └─ embedding_id: Pinecone vector ID
+
+     Phase 6: Vector Embedding
+
+     Location: app/chat/vector_stores/tariff_search.py
+
+     Chunk text → OpenAI embedding (1536 dim) → Pinecone
+
+     Pinecone Metadata:
+     {
+       "chunk_type": "evidence_quote",
+       "hts_code": "8544.42.90",
+       "program": "section_232_steel",
+       "source": "CSMS",
+       "canonical_id": "CSMS#65794272",
+       "chunk_text": "HTS 8544..."
+     }
+
+     Phase 7: RAG Lookup (Three-Tier Cache)
+
+     Location: app/chat/vector_stores/tariff_search.py
+
+     User asks: "Is HTS 8544.42.90 in scope for 232?"
+                         ↓
+     ┌─────────────────────────────────────────┐
+     │ TIER 1: PostgreSQL (Verified Assertions)│
+     │ SELECT * FROM verified_assertions       │
+     │ WHERE hts_code='8544.42.90'            │
+     │ → If found: Return immediately          │
+     └─────────────────────────────────────────┘
+                         ↓ if not found
+     ┌─────────────────────────────────────────┐
+     │ TIER 2: Pinecone (Semantic Cache)       │
+     │ Vector search with metadata filters     │
+     │ → If good match: Return cached answer   │
+     └─────────────────────────────────────────┘
+                         ↓ if not found
+     ┌─────────────────────────────────────────┐
+     │ TIER 3: Gemini (Live Search)            │
+     │ Call Gemini with Google Search grounding│
+     │ → Store result in cache for next time   │
+     └─────────────────────────────────────────┘
+
+     ---
+     Part 3: Complete Flow Diagram
+
+     ┌─────────────────────────────────────────────────────────────────┐
+     │                    EXTERNAL SOURCES                             │
+     │  CBP CSMS | Federal Register | USITC | White House             │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  WATCHERS (app/watchers/)                                       │
+     │  Poll every 6-12 hours, detect new notices                      │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  CONNECTORS (app/ingestion/connectors/)                         │
+     │  Tier-A trusted fetch, extract HTS codes & dates                │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  DOCUMENTS TABLE (app/web/db/models/document.py)                │
+     │  Store full text + metadata + SHA-256 hash                      │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  CHUNKER (app/ingestion/chunker.py)                             │
+     │  Split into 200-1200 char chunks with overlap                   │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+               ┌──────────────┴──────────────┐
+               ↓                             ↓
+     ┌─────────────────────┐      ┌─────────────────────┐
+     │  DOCUMENT_CHUNKS    │      │  PINECONE VECTORS   │
+     │  PostgreSQL table   │      │  1536-dim embeddings│
+     │  (text positions)   │      │  (semantic search)  │
+     └─────────────────────┘      └─────────────────────┘
+               │                             │
+               └──────────────┬──────────────┘
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  TEMPORAL RATE TABLES (app/web/db/models/tariff_tables.py)      │
+     │  section_301_rates | section_232_rates | ieepa_rates            │
+     │  (Manual import via scripts/populate_tariff_tables.py)          │
+     └────────────────────────┬────────────────────────────────────────┘
+                              │
+                              ↓
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  USER QUERY: "Calculate tariff for HTS 8544.42.90, China"       │
+     │                                                                 │
+     │  1. Temporal tables → section_301_rates (10,394 rows)           │
+     │  2. Static fallback → section_301_inclusions (10,407 rows)      │
+     │  3. RAG for verification → Pinecone + Gemini                    │
+     └─────────────────────────────────────────────────────────────────┘
+
+     ---
+     Part 4: Current Implementation Status
+
+     What's Working Now
+
+     | Component         | Status        | Notes                             |
+     |-------------------|---------------|-----------------------------------|
+     | Watchers          | ✓ Implemented | CBP CSMS, Federal Register, USITC |
+     | Connectors        | ✓ Implemented | Tier-A trusted extraction         |
+     | Document storage  | ✓ Implemented | Full audit trail                  |
+     | Chunker           | ✓ Implemented | Paragraph-based, 200-1200 chars   |
+     | Pinecone vectors  | ✓ Implemented | Two indices (docs, tariff-search) |
+     | Temporal tables   | ✓ Populated   | 301=10,394, 232=1,596, IEEPA=45   |
+     | RAG 3-tier lookup | ✓ Implemented | PostgreSQL → Pinecone → Gemini    |
+
+     What's Manual vs Automatic
+
+     | Process           | Current State  | Future State         |
+     |-------------------|----------------|----------------------|
+     | Watcher polling   | Manual trigger | Scheduled (Celery)   |
+     | Data extraction   | Manual trigger | Auto on detection    |
+     | Rate table update | Manual script  | Auto with Write Gate |
+     | Vector indexing   | Manual trigger | Auto on new chunks   |
+
+     ---
+     Part 5: Key Files Reference
+
+     | File                                    | Purpose                    |
+     |-----------------------------------------|----------------------------|
+     | app/watchers/cbp_csms.py                | Monitor CBP CSMS bulletins |
+     | app/watchers/federal_register.py        | Monitor Federal Register   |
+     | app/watchers/usitc.py                   | Monitor USITC HTS updates  |
+     | app/ingestion/connectors/csms.py        | Extract from CSMS          |
+     | app/ingestion/chunker.py                | Split docs into chunks     |
+     | app/chat/vector_stores/tariff_search.py | Pinecone integration       |
+     | app/web/db/models/document.py           | Document/chunk models      |
+     | app/web/db/models/tariff_tables.py      | Rate table models          |
+     | scripts/populate_tariff_tables.py       | Import CSV to tables       |
+
+     ---
+     Summary
+
+     Q: How do updates happen when new notices come up?
+
+     A: The pipeline is:
+     1. Watchers poll official sources every 6-12 hours
+     2. Connectors fetch and extract from Tier-A trusted domains
+     3. Documents stored with full audit trail + SHA-256 hash
+     4. Chunks created for RAG retrieval (200-1200 chars)
+     5. Vectors embedded in Pinecone for semantic search
+     6. Rate tables updated (currently manual via populate script)
+
+     Q: How does RAG use this data?
+
+     A: Three-tier lookup:
+     1. PostgreSQL - Verified assertions (fastest, highest trust)
+     2. Pinecone - Semantic cache (avoid repeat API calls)
+     3. Gemini - Live search with Google grounding (last resort)
+
+     Q: Is it automatic?
+
+     A: Currently semi-automatic:
+     - Watchers/connectors/chunkers are implemented
+     - Rate table updates require manual script run
+     - Future: Write Gate will enable fully automated updates
+
+⏺ Documentation complete. Here's the key takeaway:
+
+  Summary: Your Two Questions Answered
+
+  1. User Query: "Will it work for all HTS codes now?"
+
+  YES - Temporal tables are populated:
+  - section_301_rates: 10,394 rows
+  - section_232_rates: 1,596 rows
+  - ieepa_rates: 45 rows
+
+  2. Updates: "How do new notices get into the system?"
+
+  Current State: Semi-Automatic
+
+  Notice Published (CBP/FR/USITC)
+          ↓
+     ✓ Watcher detects
+          ↓
+     ✓ Connector extracts
+          ↓
+     ✓ Chunks → Pinecone (RAG works!)
+          ↓
+     ❌ Rate tables → MANUAL script
+
+  The Gap: When a new CSMS comes out, RAG can find and answer questions about it, but the actual duty calculation tables need manual update via pipenv run python 
+  scripts/populate_tariff_tables.py.
+
+  Future: Write Gate will close this gap by auto-inserting validated HTS codes into temporal tables.
+  
+  
+  # =====>
+  
+  ❌ Rate tables → MANUAL script --> yes we should automate it right. as soon as there is any change? or something. like rate is calculated or it is manual what is the meaning of that? 
+
+⏺ Great question! Let me clarify what's manual vs automated:
+
+  Current State: What's "Manual"?
+
+  When a new CSMS notice comes out (e.g., "New HTS codes added to Section 232"):
+
+  | Step                  | Current State | What It Means                          |
+  |-----------------------|---------------|----------------------------------------|
+  | 1. Detect notice      | ✓ Automated   | Watcher finds new CSMS                 |
+  | 2. Extract HTS codes  | ✓ Automated   | Connector parses text                  |
+  | 3. Store in documents | ✓ Automated   | Database gets full text                |
+  | 4. Chunk for RAG      | ✓ Automated   | Pinecone gets vectors                  |
+  | 5. Update rate tables | ❌ Manual      | Someone runs populate_tariff_tables.py |
+
+  "Manual" means: A human must run a Python script to insert the new HTS codes into the temporal rate tables that drive the actual duty calculation.
+
+  Why Is This a Problem?
+
+  Day 1: CBP publishes CSMS "HTS 9999.99.99 now in Section 232 scope"
+          ↓
+  Day 1: RAG knows about it (can answer "Is 9999.99.99 in scope?" → YES)
+          ↓
+  Day 1: BUT duty calculation says "No 232 rate found" ❌
+          (because section_232_rates table wasn't updated)
+          ↓
+  Day ?: Someone manually runs script → NOW calculation works ✓
+
+  What Should Be Automated?
+
+  CURRENT (Semi-Auto):
+  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+  │   Watcher   │ →  │  Connector  │ →  │   RAG Only  │
+  │  (auto)     │    │  (auto)     │    │  (works)    │
+  └─────────────┘    └─────────────┘    └─────────────┘
+                                                ↓
+                                        Rate tables: ❌ Manual
+
+  IDEAL (Full Auto):
+  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+  │   Watcher   │ →  │  Connector  │ →  │ Write Gate  │ →  │ Rate Tables │
+  │  (auto)     │    │  (auto)     │    │  (validate) │    │  (auto!)    │
+  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+
+  The Missing Piece: Write Gate
+
+  The Write Gate would:
+
+  1. Take extracted HTS codes from connectors
+  2. Validate against source (is this really from CBP? Is the quote accurate?)
+  3. Auto-insert into temporal tables (section_301_rates, section_232_rates, etc.)
+  4. Track provenance (which notice added this code?)
+
+  # CONCEPTUAL - What Write Gate would do:
+  def process_new_notice(notice):
+      # 1. Extract HTS codes from notice
+      hts_codes = extract_hts_codes(notice.text)
+
+      # 2. Validate each code
+      for hts in hts_codes:
+          if validate_against_source(hts, notice.url):
+              # 3. Auto-insert into rate table
+              Section301Rate.create(
+                  hts_8digit=hts,
+                  chapter_99_code=notice.chapter_99_code,
+                  duty_rate=notice.rate,
+                  effective_start=notice.effective_date,
+                  source_doc=notice.canonical_id  # Audit trail
+              )
+
+      # 4. No human intervention needed!
+
+  Should We Build This?
+
+  Yes, but with safeguards:
+
+  | Approach           | Risk             | Benefit           |
+  |--------------------|------------------|-------------------|
+  | Fully automatic    | Bad data gets in | Zero delay        |
+  | Human review queue | Delay            | Verified accuracy |
+  | Auto + alerts      | Some risk        | Fast + auditable  |
+
+  Recommended: Auto-insert with human review queue for edge cases
+
+  Would you like me to implement the Write Gate automation? This would:
+  1. Connect watcher → connector → rate table insert
+  2. Add a needs_review_queue for uncertain extractions
+  3. Enable real-time rate table updates when notices come out
+
+

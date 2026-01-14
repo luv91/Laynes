@@ -597,13 +597,13 @@ def test_v7_007_derivative_article_note16():
 
     Expected:
         - 1 slice with full $10,000 value (NOT $6,000 content value)
-        - Section 232 code: 9903.81.89 (derivative, NOT 9903.80.01 primary)
+        - Section 232 code: 9903.81.90 (derivative per CBP CSMS #65936570)
         - IEEPA Reciprocal: 9903.01.33 @ 0% (Note 16 full exempt)
         - Total duty: $8,500 (85%), NOT $6,900 (69%)
 
     Key behaviors tested:
         1. article_type='derivative' triggers full value assessment
-        2. Derivative steel uses 9903.81.89 (not primary code 9903.80.01)
+        2. Derivative steel uses 9903.81.90 (per CSV, not primary code 9903.80.01)
         3. IEEPA Reciprocal is 100% exempt for derivative articles (Note 16)
     """
     result = TestResult("TC-v7.0-007: Derivative Article - Note 16 Full Value (Steel Nails)")
@@ -636,7 +636,7 @@ def test_v7_007_derivative_article_note16():
 
         stack = entry.get("stack", [])
 
-        # Check Section 232 Steel code is derivative (9903.81.89)
+        # Check Section 232 Steel code is derivative (9903.81.90 per CSV from CBP CSMS #65936570)
         steel_codes = [l for l in stack if l.get("program_id") == "section_232_steel"]
         result.check(
             len(steel_codes) == 1,
@@ -644,8 +644,8 @@ def test_v7_007_derivative_article_note16():
         )
         if steel_codes:
             result.check(
-                steel_codes[0].get("chapter_99_code") == "9903.81.89",
-                f"Section 232 Steel should use derivative code 9903.81.89, got {steel_codes[0].get('chapter_99_code')}"
+                steel_codes[0].get("chapter_99_code") == "9903.81.90",
+                f"Section 232 Steel should use derivative code 9903.81.90, got {steel_codes[0].get('chapter_99_code')}"
             )
 
         # Check IEEPA Reciprocal is Note 16 exempt (9903.01.33 @ 0%)

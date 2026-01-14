@@ -939,26 +939,11 @@ def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = No
                     "product_group": rate.product_group,
                     "sector": rate.sector,
                     "effective_start": rate.effective_start.isoformat() if rate.effective_start else None,
-                    # v10.0: Indicate this came from temporal table
-                    "temporal_lookup": True,
                 })
 
-            # Fallback to legacy table if no temporal rate found
-            # (preserves backwards compatibility during transition)
-            inclusion = Section301Inclusion.query.filter_by(hts_8digit=hts_8digit).first()
-            if inclusion:
-                return json.dumps({
-                    "included": True,
-                    "program_id": program_id,
-                    "hts_8digit": hts_8digit,
-                    "list_name": inclusion.list_name,
-                    "chapter_99_code": inclusion.chapter_99_code,
-                    "duty_rate": float(inclusion.duty_rate),
-                    "source_doc": inclusion.source_doc,
-                    "source_page": inclusion.source_page,
-                    # v10.0: Indicate this came from legacy table
-                    "temporal_lookup": False,
-                })
+            # v17.0: No fallback - temporal table is single source of truth
+            # If HTS not found in Section301Rate, it's not subject to Section 301
+
         elif program.inclusion_table == "section_232_materials":
             # For 232, we check if HTS is in the table (material-specific check comes later)
             material = program.condition_param  # e.g., "copper", "steel", "aluminum"

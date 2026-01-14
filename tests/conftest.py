@@ -16,7 +16,12 @@ from unittest.mock import Mock, patch
 # Set testing environment before importing app
 os.environ["TESTING"] = "true"
 os.environ["USE_SQLITE_CHECKPOINTER"] = "false"
-os.environ["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+
+# Use the populated database file instead of in-memory
+# This allows tariff tests to access pre-populated data
+lanes_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+db_path = os.path.join(lanes_dir, "instance", "sqlite.db")
+os.environ["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 
 # Add the lanes directory to the Python path
 lanes_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

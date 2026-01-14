@@ -430,7 +430,12 @@ def populate_tariff_programs(app):
 
 
 def populate_section_301_from_csv(app):
-    """Import Section 301 HTS codes from CSV.
+    """DEPRECATED: Legacy function to import Section 301 HTS codes from old CSV.
+
+    v17.0: This function is NO LONGER CALLED.
+    - The temporal table (Section301Rate) is now the single source of truth
+    - See populate_section_301_temporal() which reads from section_301_rates_temporal.csv
+    - This function remains for backwards compatibility/re-bootstrapping only
 
     v9.0 Update (Jan 2026):
     - Imports 10,422 HTS codes from data/section_301_hts_codes.csv
@@ -554,18 +559,27 @@ def populate_section_301_inclusions(app):
     ]
 
     with app.app_context():
-        print("Populating section_301_inclusions...")
+        print("Populating section_301_inclusions (test case overrides)...")
+        added = 0
+        updated = 0
         for inc_data in inclusions:
+            # Check if ANY entry exists for this HTS (regardless of list_name)
             existing = Section301Inclusion.query.filter_by(
-                hts_8digit=inc_data["hts_8digit"],
-                list_name=inc_data["list_name"]
+                hts_8digit=inc_data["hts_8digit"]
             ).first()
-            if not existing:
+            if existing:
+                # UPDATE existing entry to use correct test case values
+                existing.list_name = inc_data["list_name"]
+                existing.chapter_99_code = inc_data["chapter_99_code"]
+                existing.duty_rate = inc_data["duty_rate"]
+                existing.source_doc = inc_data["source_doc"]
+                updated += 1
+            else:
                 inclusion = Section301Inclusion(**inc_data)
                 db.session.add(inclusion)
-                print(f"  Added HTS {inc_data['hts_8digit']} ({inc_data['list_name']})")
+                added += 1
         db.session.commit()
-        print(f"  Added {len(inclusions)} Section 301 inclusions")
+        print(f"  Added {added}, updated {updated} Section 301 inclusions")
 
 
 def populate_section_301_exclusions(app):
@@ -1912,22 +1926,31 @@ def populate_ieepa_temporal(app):
 
 
 def populate_section_301_temporal(app):
-    """Populate section_301_rates temporal table from CSV.
+    """Populate section_301_rates temporal table from unified CSV.
 
-    v15.0 Update (Jan 2026):
-    - Imports ~10,400 HTS codes with effective_start dates
-    - Enables historical queries: "What was the 301 rate on date X?"
-    - Uses effective_start from CSV to create time-bounded records
-    - Handles duplicate entries in CSV by tracking unique keys
+    v17.0 Update (Jan 2026) - ROLE COLUMN SUPPORT:
+    - Added 'role' column: 'impose' (default) or 'exclude' (exclusion granted)
+    - Exclusions take precedence over impose codes via get_rate_as_of()
+    - Generalizable approach: ALL data comes from CSV, no hardcoding
+
+    v16.0 Update (Jan 2026) - UNIFIED TEMPORAL CSV:
+    - Reads from data/section_301_rates_temporal.csv (consolidated file)
+    - Contains BOTH legacy rates (2018-2019) AND 2024 review rates
+    - Properly handles effective_start AND effective_end for rate supersession
+    - Staged increases (50% → 100%) are preserved with correct date ranges
+    - Replaces separate import scripts with single source of truth
+
+    CSV columns: hts_8digit, chapter_99_code, duty_rate, effective_start, effective_end, list_name, source, role
     """
     import csv
     from pathlib import Path
     from datetime import datetime
 
-    csv_path = Path(__file__).parent.parent / "data" / "section_301_hts_codes.csv"
+    # v17.0: Unified temporal CSV is the single source of truth
+    csv_path = Path(__file__).parent.parent / "data" / "section_301_rates_temporal.csv"
 
     if not csv_path.exists():
-        print(f"  WARNING: {csv_path} not found. Skipping temporal import.")
+        print(f"  ERROR: {csv_path} not found. Section 301 rates cannot be imported.")
         return 0
 
     with app.app_context():
@@ -1943,12 +1966,12 @@ def populate_section_301_temporal(app):
             Section301Rate.query.delete()
             db.session.commit()
 
-        print("Importing Section 301 temporal rates from CSV...")
+        print(f"Importing Section 301 temporal rates from {csv_path.name}...")
 
         imported = 0
         skipped = 0
-        list_counts = {}
-        seen_keys = set()  # Track unique (hts_8digit, chapter_99_code, effective_start)
+        rate_counts = {}
+        seen_keys = set()  # Track unique (hts_8digit, duty_rate, effective_start)
 
         with open(csv_path, 'r') as f:
             reader = csv.DictReader(f)
@@ -1960,33 +1983,45 @@ def populate_section_301_temporal(app):
                 except ValueError:
                     effective_start = date(2018, 7, 6)  # Default to List 1 start
 
+                # v16.0: Parse effective_end date (may be empty/None for active rates)
+                effective_end_str = row.get('effective_end', '')
+                effective_end = None
+                if effective_end_str and effective_end_str.strip():
+                    try:
+                        effective_end = datetime.strptime(effective_end_str.strip(), '%Y-%m-%d').date()
+                    except ValueError:
+                        effective_end = None
+
                 hts_8digit = row['hts_8digit']
                 chapter_99_code = row['chapter_99_code']
+                duty_rate = float(row.get('duty_rate') or row.get('rate', 0.25))
 
                 # Create unique key for deduplication
-                unique_key = (hts_8digit, chapter_99_code, str(effective_start))
+                unique_key = (hts_8digit, duty_rate, str(effective_start))
                 if unique_key in seen_keys:
                     skipped += 1
                     continue
                 seen_keys.add(unique_key)
 
-                list_name = row['list_name']
-                list_counts[list_name] = list_counts.get(list_name, 0) + 1
+                list_name = row.get('list_name', '')
 
-                # Clean hts_10digit - avoid float-like values
-                hts_10digit = row.get('hts_10digit') or None
-                if hts_10digit and '.' in str(hts_10digit):
-                    hts_10digit = None
+                # Track rate distribution
+                rate_pct = int(duty_rate * 100)
+                rate_counts[rate_pct] = rate_counts.get(rate_pct, 0) + 1
+
+                # v17.0: Read role column (default: 'impose')
+                role = row.get('role', 'impose') or 'impose'
 
                 rate_data = {
                     "hts_8digit": hts_8digit,
-                    "hts_10digit": hts_10digit,
+                    "hts_10digit": None,
                     "chapter_99_code": chapter_99_code,
-                    "duty_rate": float(row['rate']),
+                    "duty_rate": duty_rate,
                     "effective_start": effective_start,
-                    "effective_end": None,  # Currently active
+                    "effective_end": effective_end,  # v16.0: Now properly set
                     "list_name": list_name,
-                    "source_doc": row.get('source_pdf', 'USTR_301_Notice.pdf'),
+                    "source_doc": row.get('source') or row.get('source_pdf', 'USTR_301_Notice.pdf'),
+                    "role": role,  # v17.0: Support exclusion rows
                 }
 
                 rate = Section301Rate(**rate_data)
@@ -2001,8 +2036,9 @@ def populate_section_301_temporal(app):
         db.session.commit()
 
         print(f"  Imported {imported} temporal Section 301 rates (skipped {skipped} duplicates)")
-        for list_name, count in sorted(list_counts.items()):
-            print(f"    {list_name}: {count} codes")
+        print(f"  Rate distribution:")
+        for rate_pct, count in sorted(rate_counts.items()):
+            print(f"    {rate_pct}%: {count} rows")
 
         return imported
 
@@ -2012,7 +2048,7 @@ def main():
     parser.add_argument("--reset", action="store_true", help="Drop and recreate tables")
     args = parser.parse_args()
 
-    print("=== Tariff Tables Population Script (v15.0 - Section 301 Temporal) ===\n")
+    print("=== Tariff Tables Population Script (v16.0 - Unified Temporal CSV) ===\n")
 
     # Use the existing Flask app factory
     app = create_app()
@@ -2023,10 +2059,11 @@ def main():
     # Populate all tables (v4.0 and earlier)
     populate_tariff_programs(app)
 
-    # v9.0: Import Section 301 from CSV (10,422 HTS codes)
-    populate_section_301_from_csv(app)
+    # v17.0: Removed populate_section_301_from_csv() - now using unified temporal CSV
+    # The temporal table (Section301Rate) is the single source of truth
+    # Legacy Section301Inclusion table is populated by populate_section_301_inclusions() for test cases only
 
-    # Manual overrides/test cases (run after CSV import)
+    # Manual overrides/test cases
     populate_section_301_inclusions(app)
     populate_section_301_exclusions(app)
     populate_section_232_materials(app)
