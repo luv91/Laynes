@@ -32,6 +32,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
           UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/run_watchers.py \
@@ -45,6 +46,7 @@ jobs:
           SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
           UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/process_ingest_queue.py --max-jobs 50
