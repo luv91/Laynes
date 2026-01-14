@@ -25,13 +25,14 @@ jobs:
       - name: Install dependencies
         run: pipenv install --deploy
 
-      - name: Poll Federal Register
+      - name: Poll All Regulatory Sources
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           pipenv run python scripts/run_watchers.py \
-            --source federal_register \
+            --all \
             --since $(date -d "7 days ago" +%Y-%m-%d) \
             --export-manifest
 
