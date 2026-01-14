@@ -1550,8 +1550,9 @@ def calculate_duties(
             material = line.get("material")
 
             # v5.0: Get country-specific rate if country and hts_code provided
+            # v18.0: Skip for Section 301 - uses HTS-specific temporal rates (not country-specific)
             rate_source = None
-            if country and hts_code and action not in ["disclaim", "skip"]:
+            if country and hts_code and action not in ["disclaim", "skip"] and program_id != "section_301":
                 dynamic_rate, rate_source = get_rate_for_program(
                     program_id, country, hts_code, check_date
                 )
