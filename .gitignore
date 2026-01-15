@@ -65,3 +65,6 @@ docs/
 
 # Excel temp files
 ~$*
+
+# Scripts pending deletion (orphaned/redundant)
+scripts/to_be_deleted/
