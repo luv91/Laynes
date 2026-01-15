@@ -1564,113 +1564,86 @@ def populate_program_rates(app):
 
 
 def populate_hts_base_rates(app):
-    """Populate MFN Column 1 base rates.
+    """Populate MFN Column 1 base rates from CSV.
 
-    v5.0 Update (Dec 2025):
+    v8.0 Update (Jan 2026):
+    - Now loads from data/mfn_base_rates_8digit.csv (15,262 rows)
+    - CSV generated from USITC HTS https://hts.usitc.gov/
     - Required for EU 15% ceiling formula: Reciprocal = max(0, 15% - MFN)
     - Lookup supports prefix matching (8544.42.9090 -> 8544.42.90 -> 8544.42)
-    - Source: USITC HTS https://hts.usitc.gov/
 
-    Sample rates for common HTS codes. In production, this would be populated
-    from the full USITC HTS database.
+    CSV columns: hts_8digit, description, unit, general_rate_raw, general_ad_valorem_rate,
+                 special_rate_raw, other_rate_raw, edition_label, generated_at, conflict_count_same_8digit
     """
-    base_rates = [
-        # USB-C cables (HTS 8544.42.90xx)
-        {
-            "hts_code": "8544.42.90",
-            "column1_rate": 0.026,  # 2.6%
-            "description": "Other electric conductors, for a voltage not exceeding 1,000 V, fitted with connectors",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-        # Full 10-digit for more specific match
-        {
-            "hts_code": "8544.42.9090",
-            "column1_rate": 0.026,  # 2.6%
-            "description": "Other insulated electric conductors, for voltage <=1kV, with connectors",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
+    import csv
+    from pathlib import Path
+    from datetime import datetime
 
-        # LED lamps (HTS 8539.50.00)
-        {
-            "hts_code": "8539.50.00",
-            "column1_rate": 0.02,  # 2%
-            "description": "Light-emitting diode (LED) lamps",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
+    csv_path = Path(__file__).parent.parent / "data" / "mfn_base_rates_8digit.csv"
 
-        # Computers/laptops (HTS 8471.30.01)
-        {
-            "hts_code": "8471.30.01",
-            "column1_rate": 0.0,  # 0% (duty-free)
-            "description": "Portable digital automatic data processing machines, weight <=10 kg",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-
-        # Pharmaceuticals - nucleic acids (HTS 2934.99.90)
-        {
-            "hts_code": "2934.99.90",
-            "column1_rate": 0.064,  # 6.4%
-            "description": "Other heterocyclic compounds, nucleic acids and their salts",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "hts_code": "2934.99.9050",
-            "column1_rate": 0.064,  # 6.4%
-            "description": "Nucleic acids and their salts, whether or not chemically defined",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-
-        # Optical devices (HTS 9013.80.xx)
-        {
-            "hts_code": "9013.80.00",
-            "column1_rate": 0.049,  # 4.9%
-            "description": "Other optical devices, appliances and instruments",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-
-        # Steel articles (sample)
-        {
-            "hts_code": "7326.90.86",
-            "column1_rate": 0.029,  # 2.9%
-            "description": "Other articles of iron or steel",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-
-        # Aluminum articles (sample)
-        {
-            "hts_code": "7616.99.51",
-            "column1_rate": 0.051,  # 5.1%
-            "description": "Other articles of aluminum",
-            "effective_date": date(2025, 1, 1),
-            "expiration_date": None,
-        },
-    ]
+    if not csv_path.exists():
+        print(f"  ERROR: {csv_path} not found. MFN base rates cannot be imported.")
+        return 0
 
     with app.app_context():
-        print("Populating hts_base_rates (v5.0)...")
-        for rate_data in base_rates:
-            existing = HtsBaseRate.query.filter_by(
-                hts_code=rate_data["hts_code"],
-                effective_date=rate_data["effective_date"]
-            ).first()
-            if existing:
-                for key, value in rate_data.items():
-                    setattr(existing, key, value)
-                print(f"  Updated HTS {rate_data['hts_code']} = {rate_data['column1_rate']*100}%")
-            else:
-                rate = HtsBaseRate(**rate_data)
+        # Check if already populated with complete data
+        existing_count = HtsBaseRate.query.count()
+        if existing_count >= 15000:
+            print(f"hts_base_rates already has {existing_count} rows - skipping")
+            return existing_count
+
+        # Clear partial imports
+        if existing_count > 0:
+            print(f"  Clearing {existing_count} partial rows from hts_base_rates...")
+            HtsBaseRate.query.delete()
+            db.session.commit()
+
+        print(f"Importing MFN base rates from {csv_path.name}...")
+
+        imported = 0
+        skipped = 0
+
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                hts_code = row.get('hts_8digit', '')
+                if not hts_code:
+                    skipped += 1
+                    continue
+
+                # Parse ad valorem rate (e.g., 0.07 for 7%)
+                try:
+                    column1_rate = float(row.get('general_ad_valorem_rate', 0) or 0)
+                except ValueError:
+                    column1_rate = 0.0
+
+                description = row.get('description', '')[:512]  # Truncate to fit column
+
+                # Parse effective date from generated_at or use default
+                generated_at = row.get('generated_at', '')
+                try:
+                    effective_date = datetime.fromisoformat(generated_at.replace('Z', '+00:00')).date()
+                except (ValueError, AttributeError):
+                    effective_date = date(2025, 1, 1)
+
+                rate = HtsBaseRate(
+                    hts_code=hts_code,
+                    column1_rate=column1_rate,
+                    description=description,
+                    effective_date=effective_date,
+                    expiration_date=None,  # Current rates
+                )
                 db.session.add(rate)
-                print(f"  Added HTS {rate_data['hts_code']} = {rate_data['column1_rate']*100}%")
+                imported += 1
+
+                # Commit in batches for performance
+                if imported % 5000 == 0:
+                    db.session.commit()
+                    print(f"  Imported {imported} rows...")
+
         db.session.commit()
-        print(f"  Processed {len(base_rates)} HTS base rates")
+        print(f"  Imported {imported} MFN base rates, skipped {skipped}")
+        return imported
 
 
 def verify_data(app):
