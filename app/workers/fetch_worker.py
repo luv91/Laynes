@@ -60,7 +60,29 @@ class FetchWorker:
             # Compute hash
             content_hash = hashlib.sha256(raw_bytes).hexdigest()
 
-            # Check for duplicate
+            # Check if another job already processed this exact content
+            existing_job = IngestJob.query.filter_by(
+                source=job.source,
+                external_id=job.external_id,
+                content_hash=content_hash
+            ).filter(IngestJob.id != job.id).first()
+
+            if existing_job:
+                # Another job already processed this exact content
+                logger.info(
+                    f"Job {job.external_id} already processed by job {existing_job.id} "
+                    f"with same content hash {content_hash[:16]}... "
+                    f"existing status: {existing_job.status}"
+                )
+                # Mark job as already processed (don't set content_hash to avoid constraint)
+                job.status = "already_processed"
+                job.document_id = existing_job.document_id
+                db.session.commit()
+                # Always return None to skip further processing
+                # The existing job already handled this document
+                return None
+
+            # Check for duplicate document (same content from different source/external_id)
             existing = OfficialDocument.query.filter_by(
                 content_hash=content_hash
             ).first()

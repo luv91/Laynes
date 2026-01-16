@@ -130,6 +130,11 @@ class DocumentPipeline:
             doc = self.fetch_worker.process_job(job)
 
             if not doc:
+                # Check if this was an already processed duplicate
+                if job.status == "already_processed":
+                    structured_log("INFO", "job_already_processed", **job_context)
+                    result["status"] = "already_processed"
+                    return result
                 structured_log("ERROR", "fetch_failed", **job_context)
                 result["status"] = "failed"
                 result["errors"].append("Fetch failed - see job error_message")
