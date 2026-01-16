@@ -49,6 +49,8 @@ jobs:
           REDIS_URI: ${{ secrets.REDIS_URI }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          GMAIL_CSMS_EMAIL: ${{ secrets.GMAIL_CSMS_EMAIL }}
+          GMAIL_CSMS_APP_PASSWORD: ${{ secrets.GMAIL_CSMS_APP_PASSWORD }}
           UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/run_watchers.py \
@@ -68,6 +70,8 @@ jobs:
           REDIS_URI: ${{ secrets.REDIS_URI }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          GMAIL_CSMS_EMAIL: ${{ secrets.GMAIL_CSMS_EMAIL }}
+          GMAIL_CSMS_APP_PASSWORD: ${{ secrets.GMAIL_CSMS_APP_PASSWORD }}
           UPLOAD_URL: /tmp/uploads
         run: |
           pipenv run python scripts/process_ingest_queue.py --max-jobs 50
