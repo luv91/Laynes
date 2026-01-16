@@ -2043,3 +2043,202 @@ CSV → Static Table → Temporal Table → Lookup Function
 
 **Remaining Work:** Add `populate_section_301_temporal()` to enable historical queries.
 
+---
+---
+
+# Design Flaws & Fixes - January 14, 2026
+
+## Overview
+
+Additional design flaws discovered during tariff system testing and the generalizable solutions applied.
+
+---
+
+## Flaw #3: Section 301 CSV Date Error
+
+### Symptom
+- HTS 6307.90.98 (Facemasks) showed "NOT FOUND" for Section 301 rate
+- Expected: 50% under 9903.91.07
+- Actual: Query returned nothing
+
+### Root Cause
+**Data entry error in CSV** - `effective_end` was before `effective_start`:
+
+```csv
+# data/section_301_rates_temporal.csv (BEFORE)
+63079098,9903.91.07,0.5,2026-01-01,2025-12-31,Facemasks,...
+                         ↑            ↑
+                    start: Jan 1   end: Dec 31, 2025 (WRONG!)
+```
+
+### Why It Failed
+The `get_rate_as_of()` query filters:
+```sql
+WHERE effective_start <= :today
+  AND (effective_end IS NULL OR effective_end >= :today)
+```
+
+Since `effective_end (2025-12-31) < today (2026-01-14)`, the row was excluded.
+
+### Solution
+**Fix the data at source (CSV)** - no code changes needed:
+
+```csv
+# data/section_301_rates_temporal.csv (AFTER)
+63079098,9903.91.07,0.5,2026-01-01,,Facemasks,...
+                                  ↑
+                             NULL = current rate (no end date)
+```
+
+### Why This Solution is General
+- CSV is the single source of truth
+- No hardcoded values in code
+- Fix propagates automatically on next `populate_tariff_tables.py` run
+- Works in production (Railway runs populate on deploy)
+
+---
+
+## Flaw #4: MFN Base Rates Hardcoded Instead of CSV
+
+### Symptom
+- HTS 6307.90.98 showed "NOT FOUND" for MFN base rate
+- Expected: 7% (from USITC HTS)
+- Actual: Only 9 records in `hts_base_rates` table
+
+### Root Cause
+**Function was placeholder code** - never updated to load from CSV:
+
+```python
+# scripts/populate_tariff_tables.py (BEFORE)
+def populate_hts_base_rates(app):
+    """Sample rates for common HTS codes. In production, this would be populated
+    from the full USITC HTS database."""  # <-- Comment admitted it was placeholder!
+
+    base_rates = [
+        {"hts_code": "8544.42.90", "column1_rate": 0.026, ...},  # Sample 1
+        {"hts_code": "8539.50.00", "column1_rate": 0.02, ...},   # Sample 2
+        # ... only 9 hardcoded samples
+    ]
+```
+
+Meanwhile, a complete CSV existed:
+```
+data/mfn_base_rates_8digit.csv  →  15,262 rows (never loaded!)
+```
+
+### Why It Failed
+The hardcoded samples didn't include 6307.90.98 or 8505.11.00, so queries returned nothing.
+
+### Solution
+**Rewrite function to load from CSV** (same pattern as `populate_section_301_temporal()`):
+
+```python
+# scripts/populate_tariff_tables.py (AFTER)
+def populate_hts_base_rates(app):
+    """Populate MFN Column 1 base rates from CSV.
+
+    v8.0 Update (Jan 2026):
+    - Now loads from data/mfn_base_rates_8digit.csv (15,262 rows)
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "mfn_base_rates_8digit.csv"
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rate = HtsBaseRate(
+                hts_code=row['hts_8digit'],
+                column1_rate=float(row['general_ad_valorem_rate'] or 0),
+                ...
+            )
+            db.session.add(rate)
+```
+
+### Why This Solution is General
+- Follows existing pattern (CSV → populate function → database)
+- No hardcoded values - all data comes from CSV
+- CSV can be updated independently without code changes
+- Same loading pattern as Section 301, Section 232, IEEPA
+
+---
+
+## Design Principle Verified
+
+Both flaws violated the target architecture:
+
+```
+CSV (source of truth) → populate function → database table → query
+         ↓                    ↓                   ↓            ↓
+   Fix data here         No hardcoding      Auto-populated   No fallbacks
+```
+
+### Before (Flawed)
+```
+CSV exists but ignored
+         ↓
+Hardcoded samples in Python → Only 9 records → Queries fail
+```
+
+### After (Fixed)
+```
+CSV (15,262 rows) → populate_hts_base_rates() → 15,230 records → Queries work
+```
+
+---
+
+## Verification
+
+### Test Results After Fix
+
+| HTS Code | Section 301 | MFN Base | Result |
+|----------|-------------|----------|--------|
+| 3818.00.00.20 | 50% | - | PASS |
+| 8541.42.0010 | 50% | - | PASS |
+| 9018.31.0040 | 100% | - | PASS |
+| 4015.12.1010 | 100% | - | PASS |
+| 6307.90.9870 | 50% | - | PASS |
+| 6307.90.9842 | 50% | 7.0% | PASS |
+| 8505.11.0030 | - | 2.1% | PASS |
+
+### Regression Tests
+```
+pytest tests/test_stacking*.py → 33 passed, 0 failed
+```
+
+---
+
+## Files Changed
+
+| File | Change | Impact |
+|------|--------|--------|
+| `data/section_301_rates_temporal.csv` | Fixed 2 date errors | Data correction |
+| `scripts/populate_tariff_tables.py` | Load MFN from CSV | -89, +81 lines (removed hardcoding) |
+
+---
+
+## Lessons Learned
+
+1. **Placeholder code persists** - Comments saying "in production, this would..." should be addressed before production
+
+2. **Data entry validation** - CSV imports should validate `effective_end >= effective_start`
+
+3. **One source of truth** - All rate data should come from CSV, not hardcoded in Python
+
+4. **Follow existing patterns** - The Section 301 CSV loader was the template to follow
+
+---
+
+## Prevention
+
+### Recommended: Add CSV Date Validation
+
+```python
+# In populate_section_301_temporal():
+if effective_end and effective_start and effective_end < effective_start:
+    print(f"  WARNING: {hts_8digit} has end ({effective_end}) before start ({effective_start})")
+    effective_end = None  # Treat as current rate
+```
+
+### Recommended: Remove Placeholder Functions
+
+Any function with comments like "sample data" or "in production would..." should be flagged for completion before deployment.
+

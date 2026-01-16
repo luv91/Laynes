@@ -39,6 +39,7 @@ gradio = "*"
 google-genai = "*"
 mcp = "*"
 beautifulsoup4 = "*"
+imap-tools = "*"
 
 [dev-packages]
 pytest = "*"

@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option('--source', '-s', default='federal_register',
-              type=click.Choice(['federal_register', 'cbp_csms', 'usitc', 'all']),
+              type=click.Choice(['federal_register', 'cbp_csms', 'usitc', 'email_csms', 'all']),
               help='Source to poll')
 @click.option('--since', '-d', default=None,
               help='Poll since date (YYYY-MM-DD). Default: 7 days ago')
@@ -103,7 +103,7 @@ def main(source: str, since: str, dry_run: bool, export_manifest: bool, poll_all
         # Determine sources to poll
         sources_to_poll = []
         if poll_all or source == 'all':
-            sources_to_poll = ['federal_register', 'cbp_csms', 'usitc']
+            sources_to_poll = ['federal_register', 'cbp_csms', 'usitc', 'email_csms']
         else:
             sources_to_poll = [source]
 
@@ -126,6 +126,8 @@ def main(source: str, since: str, dry_run: bool, export_manifest: bool, poll_all
                     docs = poll_cbp_csms(since_date)
                 elif src == 'usitc':
                     docs = poll_usitc(since_date)
+                elif src == 'email_csms':
+                    docs = poll_email_csms(since_date)
                 else:
                     logger.warning(f"Unknown source: {src}")
                     continue
@@ -211,6 +213,19 @@ def poll_usitc(since_date: date):
         return docs
     except Exception as e:
         logger.error(f"USITC watcher failed: {e}")
+        return []
+
+
+def poll_email_csms(since_date: date):
+    """Poll Gmail inbox for CSMS bulletins."""
+    from app.watchers.email_csms import EmailCSMSWatcher
+
+    watcher = EmailCSMSWatcher()
+    try:
+        docs = watcher.poll(since_date)
+        return docs
+    except Exception as e:
+        logger.error(f"Email CSMS watcher failed: {e}")
         return []
 
 

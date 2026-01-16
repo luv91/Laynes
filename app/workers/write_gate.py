@@ -53,6 +53,7 @@ class WriteGate:
         "federal_register",
         "cbp_csms",
         "usitc",
+        "email_csms",  # CBP bulletins received via email (same authority as cbp_csms)
     ]
 
     # Tier A domains for URL verification
@@ -62,6 +63,7 @@ class WriteGate:
         "cbp.gov",
         "usitc.gov",
         "ustr.gov",
+        "govdelivery.com",  # CBP emails link to GovDelivery bulletins
     ]
 
     def check(self, candidate: CandidateChange,
@@ -228,8 +230,8 @@ class WriteGate:
             proves_chapter_99=candidate.new_chapter_99_code,
             proves_rate=candidate.rate,
             proves_effective_date=candidate.effective_date,
-            validated_by="write_gate",
-            validated_at=datetime.utcnow(),
+            verified_by="write_gate",
+            verified_at=datetime.utcnow(),
             confidence_score=validation.confidence,
         )
 
