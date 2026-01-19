@@ -238,6 +238,15 @@ class DocumentPipeline:
         }
 
         for candidate in candidates:
+            # Fill in missing effective_date from document publication_date
+            # Most Federal Register documents are "effective upon publication"
+            if not candidate.effective_date and doc.publication_date:
+                candidate.effective_date = doc.publication_date
+                logger.info(
+                    f"Using document publication_date {doc.publication_date} "
+                    f"for {candidate.hts_code} (LLM returned null effective_date)"
+                )
+
             # Validate
             validation = self.validation_worker.validate(candidate, doc)
 

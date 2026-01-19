@@ -107,15 +107,31 @@ class ValidationWorker:
 
         # Check 1: HTS code exists in document
         total_checks += 1
-        hts_clean = candidate.hts_code.replace(".", "")
+
+        # Normalize the HTS code - remove all separators
+        hts_clean = candidate.hts_code.replace(".", "").replace(" ", "").replace("-", "")
+
+        # Generate multiple format variants
         hts_variants = [
-            candidate.hts_code,
-            hts_clean,
-            f"{hts_clean[:4]}.{hts_clean[4:6]}.{hts_clean[6:]}",
+            candidate.hts_code,                                         # Original
+            hts_clean,                                                   # All digits
+            f"{hts_clean[:4]}.{hts_clean[4:6]}.{hts_clean[6:]}",        # 4.2.rest
         ]
 
+        # Add partial codes (6-digit and 8-digit)
+        if len(hts_clean) >= 6:
+            hts_variants.append(hts_clean[:6])                           # 6-digit clean
+            hts_variants.append(f"{hts_clean[:4]}.{hts_clean[4:6]}")     # 6-digit dotted
+        if len(hts_clean) >= 8:
+            hts_variants.append(hts_clean[:8])                           # 8-digit clean
+            hts_variants.append(f"{hts_clean[:4]}.{hts_clean[4:6]}.{hts_clean[6:8]}")  # 8-digit dotted
+
+        # Also normalize the canonical text for flexible matching
+        canonical_normalized = canonical.replace(".", "").replace(" ", "").replace("-", "")
+
         for variant in hts_variants:
-            if variant in canonical:
+            clean_variant = variant.replace(".", "").replace(" ", "").replace("-", "")
+            if variant in canonical or clean_variant in canonical_normalized:
                 result.hts_found = True
                 checks_passed += 1
                 break
