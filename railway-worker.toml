@@ -1,4 +1,4 @@
 [deploy]
 # Worker service configuration
 # Runs the ingest queue processor as a daemon (every 5 minutes)
-startCommand = "python scripts/populate_tariff_tables.py --seed-if-empty && python scripts/process_ingest_queue.py --daemon --interval 300"
+startCommand = "python scripts/populate_tariff_tables.py && python scripts/process_ingest_queue.py --daemon --interval 300"

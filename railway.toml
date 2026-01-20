@@ -1,4 +1,5 @@
 [deploy]
-# v16.0: Single command - unified temporal CSV includes all rates (legacy + 2024 review)
-# No more chaining multiple import scripts!
-startCommand = "python scripts/populate_tariff_tables.py --reset && gunicorn wsgi:app --bind 0.0.0.0:$PORT"
+# v17.0: Database is Source of Truth - preserve runtime data across deploys
+# Default behavior (no flags): Only load CSV if table is empty (first deploy or after explicit reset)
+# This preserves pipeline-discovered rates, evidence packets, and audit history
+startCommand = "python scripts/populate_tariff_tables.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT"
