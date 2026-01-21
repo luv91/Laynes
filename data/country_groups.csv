@@ -1,0 +1,6 @@
+group_id,description,effective_date,expiration_date
+EU,European Union - 15% ceiling rule for IEEPA Reciprocal,2025-08-07,
+UK,United Kingdom - 232 Steel/Aluminum exception (25% not 50%),2025-06-04,
+CN,China - Full tariffs (301 Fentanyl 232 Reciprocal),2024-01-01,
+USMCA,USMCA countries - Mexico Canada (FTA treatment),2020-07-01,
+default,Default group for countries without special treatment,2020-01-01,

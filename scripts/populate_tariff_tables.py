@@ -114,6 +114,212 @@ from app.web.db.models.tariff_tables import (
     Section301Rate,
 )
 
+# =============================================================================
+# v19.0: CSV-driven configuration loaders
+# =============================================================================
+import csv
+from pathlib import Path
+from datetime import datetime
+
+
+def _parse_date(date_str):
+    """Parse date string from CSV (YYYY-MM-DD format)."""
+    if not date_str or date_str.strip() == '':
+        return None
+    return datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+
+
+def _parse_float(val):
+    """Parse float from CSV, return None if empty."""
+    if not val or val.strip() == '':
+        return None
+    return float(val)
+
+
+def _parse_int(val):
+    """Parse int from CSV, return None if empty."""
+    if not val or val.strip() == '':
+        return None
+    return int(val)
+
+
+def _empty_to_none(val):
+    """Convert empty string to None."""
+    if not val or val.strip() == '':
+        return None
+    return val.strip()
+
+
+def load_tariff_programs_from_csv():
+    """Load program definitions from data/tariff_programs.csv.
+
+    v19.0: Replaces hardcoded programs list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "tariff_programs.csv"
+    programs = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty programs list.")
+        return programs
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            programs.append({
+                'program_id': row['program_id'],
+                'program_name': row['program_name'],
+                'country': row['country'],
+                'check_type': row['check_type'],
+                'condition_handler': _empty_to_none(row['condition_handler']),
+                'condition_param': _empty_to_none(row['condition_param']),
+                'inclusion_table': _empty_to_none(row['inclusion_table']),
+                'exclusion_table': _empty_to_none(row['exclusion_table']),
+                'filing_sequence': _parse_int(row['filing_sequence']),
+                'calculation_sequence': _parse_int(row['calculation_sequence']),
+                'source_document': _empty_to_none(row['source_document']),
+                'effective_date': _parse_date(row['effective_date']),
+                'expiration_date': _parse_date(row['expiration_date']),
+                'disclaim_behavior': _empty_to_none(row.get('disclaim_behavior', '')),
+            })
+
+    return programs
+
+
+def load_program_codes_from_csv():
+    """Load program codes from data/tariff_program_codes.csv.
+
+    v19.0: Replaces hardcoded codes list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "tariff_program_codes.csv"
+    codes = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty codes list.")
+        return codes
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            codes.append({
+                'program_id': row['program_id'],
+                'action': row['action'],
+                'variant': _empty_to_none(row['variant']),
+                'slice_type': row['slice_type'],
+                'chapter_99_code': row['chapter_99_code'],
+                'duty_rate': _parse_float(row['duty_rate']),
+                'applies_to': row['applies_to'],
+                'source_doc': _empty_to_none(row['source_doc']),
+            })
+
+    return codes
+
+
+def load_duty_rules_from_csv():
+    """Load duty rules from data/tariff_duty_rules.csv.
+
+    v19.0: Replaces hardcoded rules list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "tariff_duty_rules.csv"
+    rules = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty rules list.")
+        return rules
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rules.append({
+                'program_id': row['program_id'],
+                'calculation_type': row['calculation_type'],
+                'base_on': row['base_on'],
+                'compounds_with': _empty_to_none(row['compounds_with']),
+                'source_doc': _empty_to_none(row['source_doc']),
+                'content_key': _empty_to_none(row['content_key']),
+                'fallback_base_on': _empty_to_none(row['fallback_base_on']),
+                'base_effect': _empty_to_none(row['base_effect']),
+            })
+
+    return rules
+
+
+def load_program_rates_from_csv():
+    """Load program rates from data/tariff_program_rates.csv.
+
+    v19.0: Replaces hardcoded rates list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "tariff_program_rates.csv"
+    rates = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty rates list.")
+        return rates
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rates.append({
+                'program_id': row['program_id'],
+                'group_id': row['group_id'],
+                'rate': _parse_float(row['rate']),
+                'rate_type': _empty_to_none(row['rate_type']),
+                'rate_formula': _empty_to_none(row['rate_formula']),
+                'effective_date': _parse_date(row['effective_date']),
+                'expiration_date': _parse_date(row['expiration_date']),
+            })
+
+    return rates
+
+
+def load_country_groups_from_csv():
+    """Load country groups from data/country_groups.csv.
+
+    v19.0: Replaces hardcoded groups list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "country_groups.csv"
+    groups = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty groups list.")
+        return groups
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            groups.append({
+                'group_id': row['group_id'],
+                'description': row['description'],
+                'effective_date': _parse_date(row['effective_date']),
+                'expiration_date': _parse_date(row['expiration_date']),
+            })
+
+    return groups
+
+
+def load_country_group_members_from_csv():
+    """Load country group members from data/country_group_members.csv.
+
+    v19.0: Replaces hardcoded members list.
+    """
+    csv_path = Path(__file__).parent.parent / "data" / "country_group_members.csv"
+    members = []
+
+    if not csv_path.exists():
+        print(f"  WARNING: {csv_path} not found. Using empty members list.")
+        return members
+
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            members.append({
+                'country_code': row['country_code'],
+                'group_id': row['group_id'],
+                'effective_date': _parse_date(row['effective_date']),
+                'expiration_date': _parse_date(row.get('expiration_date', '')),
+            })
+
+    return members
+
 
 def init_tables(app, reset=False):
     """Create tariff tables in database.
@@ -138,6 +344,8 @@ def init_tables(app, reset=False):
 def populate_tariff_programs(app):
     """Populate the tariff_programs master table.
 
+    v19.0 Update: Now reads from data/tariff_programs.csv (CSV-driven).
+
     v4.0 Update:
     - filing_sequence: Order for ACE entry display (per CBP CSMS #64018403)
     - calculation_sequence: Order for duty math (232 before IEEPA Reciprocal)
@@ -146,315 +354,14 @@ def populate_tariff_programs(app):
     1. Section 301
     2. IEEPA Fentanyl
     3. IEEPA Reciprocal
-    4-6. Section 232 (Copper, Steel, Aluminum)
+    4-8. Section 232 (Copper, Steel, Aluminum, Auto, Semiconductor)
 
     Calculation Order:
     - 232 programs must calculate FIRST to determine remaining_value
     - IEEPA Reciprocal calculates on remaining_value (product - 232 content)
     """
-    programs = [
-        # Section 301 - China tariffs
-        {
-            "program_id": "section_301",
-            "program_name": "Section 301 China Tariffs",
-            "country": "CN",  # ISO 2-letter code
-            "check_type": "hts_lookup",
-            "condition_handler": "none",
-            "condition_param": None,
-            "inclusion_table": "section_301_inclusions",
-            "exclusion_table": "section_301_exclusions",
-            "filing_sequence": 1,
-            "calculation_sequence": 1,
-            "source_document": "USTR_301_Notice.pdf",
-            "effective_date": date(2018, 7, 6),
-            "expiration_date": None,
-        },
-        # IEEPA Fentanyl - applies to all China imports
-        {
-            "program_id": "ieepa_fentanyl",
-            "program_name": "IEEPA Fentanyl Tariff",
-            "country": "CN",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "none",
-            "condition_param": None,
-            "inclusion_table": None,
-            "exclusion_table": None,
-            "filing_sequence": 2,
-            "calculation_sequence": 2,
-            "source_document": "IEEPA_Fentanyl_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # IEEPA Fentanyl - Hong Kong (same as China per broker feedback)
-        {
-            "program_id": "ieepa_fentanyl",
-            "program_name": "IEEPA Fentanyl Tariff",
-            "country": "HK",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "none",
-            "condition_param": None,
-            "inclusion_table": None,
-            "exclusion_table": None,
-            "filing_sequence": 2,
-            "calculation_sequence": 2,
-            "source_document": "IEEPA_Fentanyl_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # IEEPA Fentanyl - Macau (same as China per broker feedback)
-        {
-            "program_id": "ieepa_fentanyl",
-            "program_name": "IEEPA Fentanyl Tariff",
-            "country": "MO",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "none",
-            "condition_param": None,
-            "inclusion_table": None,
-            "exclusion_table": None,
-            "filing_sequence": 2,
-            "calculation_sequence": 2,
-            "source_document": "IEEPA_Fentanyl_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # Section 232 - Copper (applies to ALL countries)
-        # Note: 232 programs calculate BEFORE ieepa_reciprocal for unstacking
-        # v7.0: disclaim_behavior='required' - must file disclaim code in other slices
-        {
-            "program_id": "section_232_copper",
-            "program_name": "Section 232 Copper",
-            "country": "ALL",
-            "check_type": "hts_lookup",
-            "condition_handler": "handle_material_composition",
-            "condition_param": "copper",
-            "inclusion_table": "section_232_materials",
-            "exclusion_table": None,
-            "filing_sequence": 4,  # Display order: after IEEPA Reciprocal
-            "calculation_sequence": 3,  # Calc order: before IEEPA Reciprocal
-            "source_document": "Section_232_Copper_Proclamation.pdf",
-            "effective_date": date(2020, 1, 1),
-            "expiration_date": None,
-            "disclaim_behavior": "required",  # v7.0: Must include disclaim code in other slices
-        },
-        # Section 232 - Steel (applies to ALL countries)
-        # v7.0: disclaim_behavior='omit' - omit entirely when not claimed
-        {
-            "program_id": "section_232_steel",
-            "program_name": "Section 232 Steel",
-            "country": "ALL",
-            "check_type": "hts_lookup",
-            "condition_handler": "handle_material_composition",
-            "condition_param": "steel",
-            "inclusion_table": "section_232_materials",
-            "exclusion_table": None,
-            "filing_sequence": 5,  # Display order: after IEEPA Reciprocal
-            "calculation_sequence": 4,  # Calc order: before IEEPA Reciprocal
-            "source_document": "Section_232_Steel_Proclamation.pdf",
-            "effective_date": date(2018, 3, 23),
-            "expiration_date": None,
-            "disclaim_behavior": "omit",  # v7.0: Omit entirely when not claimed
-        },
-        # Section 232 - Aluminum (applies to ALL countries)
-        # v7.0: disclaim_behavior='omit' - omit entirely when not claimed
-        {
-            "program_id": "section_232_aluminum",
-            "program_name": "Section 232 Aluminum",
-            "country": "ALL",
-            "check_type": "hts_lookup",
-            "condition_handler": "handle_material_composition",
-            "condition_param": "aluminum",
-            "inclusion_table": "section_232_materials",
-            "exclusion_table": None,
-            "filing_sequence": 6,  # Display order: after IEEPA Reciprocal
-            "calculation_sequence": 5,  # Calc order: before IEEPA Reciprocal
-            "source_document": "Section_232_Aluminum_Proclamation.pdf",
-            "effective_date": date(2018, 3, 23),
-            "expiration_date": None,
-            "disclaim_behavior": "omit",  # v7.0: Omit entirely when not claimed
-        },
-        # Section 232 - Auto Parts (applies to ALL countries)
-        # Proclamation 10908 (90 FR 14705) - effective May 3, 2025
-        # v8.0: 25% tariff, with USMCA exemption option
-        {
-            "program_id": "section_232_auto",
-            "program_name": "Section 232 Auto Parts",
-            "country": "ALL",
-            "check_type": "hts_lookup",
-            "condition_handler": "handle_material_composition",
-            "condition_param": "auto",
-            "inclusion_table": "section_232_materials",
-            "exclusion_table": None,
-            "filing_sequence": 7,  # Display order: after Aluminum
-            "calculation_sequence": 6,  # Calc order: before IEEPA Reciprocal
-            "source_document": "Proclamation_10908_90FR14705_AutoParts.pdf",
-            "effective_date": date(2025, 5, 3),
-            "expiration_date": None,
-            "disclaim_behavior": "omit",  # Omit when not claimed (USMCA-eligible)
-        },
-        # Section 232 - Semiconductors (CSMS #67400472, effective Jan 15, 2026)
-        # 25% tariff on processing units, ADP machines, and computer parts
-        # Products under 9903.79.01 are EXEMPT from IEEPA Reciprocal
-        {
-            "program_id": "section_232_semiconductor",
-            "program_name": "Section 232 Semiconductors",
-            "country": "ALL",
-            "check_type": "hts_lookup",
-            "condition_handler": "handle_material_composition",
-            "condition_param": "semiconductor",
-            "inclusion_table": "section_232_materials",
-            "exclusion_table": None,
-            "filing_sequence": 8,  # Display order: after Auto
-            "calculation_sequence": 7,  # Calc order: before IEEPA Reciprocal
-            "source_document": "CSMS_67400472_Semiconductor_Jan2026.pdf",
-            "effective_date": date(2026, 1, 15),
-            "expiration_date": None,
-            "disclaim_behavior": "omit",  # Omit when exempt (data center, R&D, etc.)
-        },
-        # IEEPA Reciprocal - depends on Section 232 claims for unstacking
-        # filing_sequence=3 (display after Fentanyl)
-        # calculation_sequence=6 (calculate AFTER 232 to know remaining_value)
-        # NOTE: IEEPA Reciprocal applies to many countries, not just China
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "CN",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",  # v4.0: Annex II lookup
-            "filing_sequence": 3,  # Display order: after Fentanyl
-            "calculation_sequence": 6,  # Calc order: AFTER 232 programs
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # IEEPA Reciprocal - Hong Kong (same as China)
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "HK",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # IEEPA Reciprocal - Macau (same as China)
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "MO",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # NOTE: Germany is NOT subject to IEEPA Reciprocal
-        # per test case v4.0 Case 3 - Germany should only get 232 programs
-        # UK and other countries listed below ARE subject to IEEPA Reciprocal
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "GB",  # ISO 2-letter code for UK
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "JP",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "VN",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "IN",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "TW",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "ieepa_reciprocal",
-            "program_name": "IEEPA Reciprocal Tariff",
-            "country": "KR",  # ISO 2-letter code
-            "check_type": "always",
-            "condition_handler": "handle_dependency",
-            "condition_param": "section_232",
-            "inclusion_table": None,
-            "exclusion_table": "ieepa_annex_ii_exclusions",
-            "filing_sequence": 3,
-            "calculation_sequence": 6,
-            "source_document": "IEEPA_Reciprocal_Notice.pdf",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    programs = load_tariff_programs_from_csv()
 
     with app.app_context():
         print("Populating tariff_programs...")
@@ -941,6 +848,8 @@ def populate_section_232_materials(app):
 def populate_program_codes(app):
     """Populate program output codes with v4.0 variant and slice_type support.
 
+    v19.0 Update: Now reads from data/tariff_program_codes.csv (CSV-driven).
+
     v4.0 Update (Dec 2025):
     - Added variant column for IEEPA Reciprocal outcomes
     - Added slice_type column for per-slice code lookup
@@ -955,150 +864,9 @@ def populate_program_codes(app):
     Section 232 Slice Types:
     - claim: on own metal slice (e.g., copper_slice for 232 Copper)
     - disclaim: on all other slices (non_metal, other metals)
-
-    REAL 2025/2026 RATES (Updated per 90 FR 10524, June 4, 2025):
-    - Section 301: 25% (unchanged)
-    - IEEPA Fentanyl: 10% (reduced from 20% on Nov 10, 2025)
-    - IEEPA Reciprocal: 10% (taxable), 0% (exempt variants)
-    - Section 232 Copper: 50%
-    - Section 232 Steel: 50% (default), 25% (UK exception)
-    - Section 232 Aluminum: 50% (default), 25% (UK exception) - DOUBLED June 2025
     """
-    codes = [
-        # ===================================================================
-        # Section 301 - 25% on full product (slice_type='all' applies to any)
-        # ===================================================================
-        {"program_id": "section_301", "action": "apply", "variant": None, "slice_type": "all",
-         "chapter_99_code": "9903.88.03", "duty_rate": 0.25, "applies_to": "full",
-         "source_doc": "USTR_301_List3_Notice.pdf"},
-
-        # ===================================================================
-        # IEEPA Fentanyl - 10% on full product (applies to all slices)
-        # ===================================================================
-        {"program_id": "ieepa_fentanyl", "action": "apply", "variant": None, "slice_type": "all",
-         "chapter_99_code": "9903.01.24", "duty_rate": 0.10, "applies_to": "full",
-         "source_doc": "IEEPA_Fentanyl_EO_Nov2025.pdf"},
-
-        # ===================================================================
-        # IEEPA Reciprocal - Multiple variants with different codes
-        # ===================================================================
-        # Variant: taxable - Pay 10% on non-metal slice
-        {"program_id": "ieepa_reciprocal", "action": "paid", "variant": "taxable", "slice_type": "non_metal",
-         "chapter_99_code": "9903.01.25", "duty_rate": 0.10, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-        {"program_id": "ieepa_reciprocal", "action": "paid", "variant": "taxable", "slice_type": "full",
-         "chapter_99_code": "9903.01.25", "duty_rate": 0.10, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-
-        # Variant: annex_ii_exempt - HTS in Annex II list (pharma/chem/minerals)
-        {"program_id": "ieepa_reciprocal", "action": "exempt", "variant": "annex_ii_exempt", "slice_type": "all",
-         "chapter_99_code": "9903.01.32", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_AnnexII.pdf"},
-
-        # Variant: metal_exempt - 232 metal content slice exempt from Reciprocal
-        {"program_id": "ieepa_reciprocal", "action": "exempt", "variant": "metal_exempt", "slice_type": "copper_slice",
-         "chapter_99_code": "9903.01.33", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-        {"program_id": "ieepa_reciprocal", "action": "exempt", "variant": "metal_exempt", "slice_type": "steel_slice",
-         "chapter_99_code": "9903.01.33", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-        {"program_id": "ieepa_reciprocal", "action": "exempt", "variant": "metal_exempt", "slice_type": "aluminum_slice",
-         "chapter_99_code": "9903.01.33", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-
-        # Variant: us_content_exempt - >20% US origin content
-        {"program_id": "ieepa_reciprocal", "action": "exempt", "variant": "us_content_exempt", "slice_type": "all",
-         "chapter_99_code": "9903.01.34", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "IEEPA_Reciprocal_Notice.pdf"},
-
-        # ===================================================================
-        # Section 232 Copper - 50%
-        # Claim on copper_slice, Disclaim on non_metal and other metals
-        # ===================================================================
-        {"program_id": "section_232_copper", "action": "claim", "variant": None, "slice_type": "copper_slice",
-         "chapter_99_code": "9903.78.01", "duty_rate": 0.50, "applies_to": "partial",
-         "source_doc": "CSMS_65794272_Copper_July2025.pdf"},
-        {"program_id": "section_232_copper", "action": "disclaim", "variant": None, "slice_type": "non_metal",
-         "chapter_99_code": "9903.78.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65794272_Copper_July2025.pdf"},
-        {"program_id": "section_232_copper", "action": "disclaim", "variant": None, "slice_type": "steel_slice",
-         "chapter_99_code": "9903.78.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65794272_Copper_July2025.pdf"},
-        {"program_id": "section_232_copper", "action": "disclaim", "variant": None, "slice_type": "aluminum_slice",
-         "chapter_99_code": "9903.78.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65794272_Copper_July2025.pdf"},
-        {"program_id": "section_232_copper", "action": "disclaim", "variant": None, "slice_type": "full",
-         "chapter_99_code": "9903.78.02", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "CSMS_65794272_Copper_July2025.pdf"},
-
-        # ===================================================================
-        # Section 232 Steel - 50%
-        # Claim on steel_slice, Disclaim on non_metal and other metals
-        # ===================================================================
-        {"program_id": "section_232_steel", "action": "claim", "variant": None, "slice_type": "steel_slice",
-         "chapter_99_code": "9903.80.01", "duty_rate": 0.50, "applies_to": "partial",
-         "source_doc": "232_Steel_Proclamation_10895.pdf"},
-        {"program_id": "section_232_steel", "action": "disclaim", "variant": None, "slice_type": "non_metal",
-         "chapter_99_code": "9903.80.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Steel_Proclamation_10895.pdf"},
-        {"program_id": "section_232_steel", "action": "disclaim", "variant": None, "slice_type": "copper_slice",
-         "chapter_99_code": "9903.80.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Steel_Proclamation_10895.pdf"},
-        {"program_id": "section_232_steel", "action": "disclaim", "variant": None, "slice_type": "aluminum_slice",
-         "chapter_99_code": "9903.80.02", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "232_Steel_Proclamation_10895.pdf"},
-        {"program_id": "section_232_steel", "action": "disclaim", "variant": None, "slice_type": "full",
-         "chapter_99_code": "9903.80.02", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "232_Steel_Proclamation_10895.pdf"},
-
-        # ===================================================================
-        # Section 232 Aluminum - 50% (UPDATED per 90 FR 10524, June 4, 2025)
-        # Claim on aluminum_slice, Disclaim on non_metal and other metals
-        # ===================================================================
-        {"program_id": "section_232_aluminum", "action": "claim", "variant": None, "slice_type": "aluminum_slice",
-         "chapter_99_code": "9903.85.08", "duty_rate": 0.50, "applies_to": "partial",
-         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
-        {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "non_metal",
-         "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
-        {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "copper_slice",
-         "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
-        {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "steel_slice",
-         "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
-        {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "full",
-         "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
-
-        # ===================================================================
-        # Section 232 Auto Parts - 25% (Proclamation 10908, May 3, 2025)
-        # Claim on auto_slice, Disclaim for USMCA-eligible parts
-        # ===================================================================
-        {"program_id": "section_232_auto", "action": "claim", "variant": None, "slice_type": "auto_slice",
-         "chapter_99_code": "9903.94.05", "duty_rate": 0.25, "applies_to": "partial",
-         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
-        {"program_id": "section_232_auto", "action": "disclaim", "variant": "usmca_eligible", "slice_type": "auto_slice",
-         "chapter_99_code": "9903.94.06", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
-        {"program_id": "section_232_auto", "action": "disclaim", "variant": None, "slice_type": "full",
-         "chapter_99_code": "9903.94.06", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
-
-        # ===================================================================
-        # Section 232 Semiconductors - 25% (CSMS #67400472, Jan 15, 2026)
-        # Claim on semiconductor_slice, Disclaim for exemptions (data center, R&D, etc.)
-        # ===================================================================
-        {"program_id": "section_232_semiconductor", "action": "claim", "variant": None, "slice_type": "semiconductor_slice",
-         "chapter_99_code": "9903.79.01", "duty_rate": 0.25, "applies_to": "partial",
-         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
-        {"program_id": "section_232_semiconductor", "action": "disclaim", "variant": "exempt", "slice_type": "semiconductor_slice",
-         "chapter_99_code": "9903.79.09", "duty_rate": 0.0, "applies_to": "partial",
-         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
-        {"program_id": "section_232_semiconductor", "action": "disclaim", "variant": None, "slice_type": "full",
-         "chapter_99_code": "9903.79.09", "duty_rate": 0.0, "applies_to": "full",
-         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    codes = load_program_codes_from_csv()
 
     with app.app_context():
         print("Populating program_codes (v4.0 with variant/slice_type)...")
@@ -1126,6 +894,8 @@ def populate_program_codes(app):
 def populate_duty_rules(app):
     """Populate duty calculation rules.
 
+    v19.0 Update: Now reads from data/tariff_duty_rules.csv (CSV-driven).
+
     Phase 6 Update (Dec 2025):
     - Section 232 programs now use base_on='content_value' (duty on material $ value)
     - Added content_key to identify which material (copper, steel, aluminum)
@@ -1138,21 +908,8 @@ def populate_duty_rules(app):
       This means IEEPA duty is calculated on product_value MINUS 232 content values
     - This implements CBP rule: "232 content is NOT subject to IEEPA Reciprocal"
     """
-    rules = [
-        # Non-232 programs: duty on full product value
-        {"program_id": "section_301", "calculation_type": "additive", "base_on": "product_value", "compounds_with": None, "source_doc": "301_Notice.pdf", "content_key": None, "fallback_base_on": None, "base_effect": None},
-        {"program_id": "ieepa_fentanyl", "calculation_type": "additive", "base_on": "product_value", "compounds_with": None, "source_doc": "IEEPA_Fentanyl.pdf", "content_key": None, "fallback_base_on": None, "base_effect": None},
-        # IEEPA Reciprocal: duty on REMAINING value (after 232 deductions) - Phase 6.5
-        {"program_id": "ieepa_reciprocal", "calculation_type": "additive", "base_on": "remaining_value", "compounds_with": None, "source_doc": "IEEPA_Reciprocal.pdf", "content_key": None, "fallback_base_on": None, "base_effect": None},
-        # Section 232 programs: duty on material content VALUE (Phase 6)
-        # base_effect='subtract_from_remaining' - these values reduce IEEPA base (Phase 6.5)
-        # If content_value unknown, fallback to full_value (penalty case)
-        {"program_id": "section_232_copper", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "CSMS_65794272_Copper_July2025.pdf", "content_key": "copper", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
-        {"program_id": "section_232_steel", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Steel_Proclamation_10895.pdf", "content_key": "steel", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
-        {"program_id": "section_232_aluminum", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Aluminum_Proclamation_10896.pdf", "content_key": "aluminum", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
-        {"program_id": "section_232_auto", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf", "content_key": "auto", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
-        {"program_id": "section_232_semiconductor", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf", "content_key": "semiconductor", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    rules = load_duty_rules_from_csv()
 
     with app.app_context():
         print("Populating duty_rules...")
@@ -1329,47 +1086,19 @@ def populate_source_documents(app):
 def populate_country_groups(app):
     """Populate country groups for rate lookups.
 
+    v19.0 Update: Now reads from data/country_groups.csv (CSV-driven).
+
     v5.0 Update (Dec 2025):
     - EU: European Union countries (15% ceiling rule)
     - UK: United Kingdom (232 exception - stays at 25%)
     - CN: China (full tariffs)
     - USMCA: Mexico, Canada (FTA - not currently used for stacking)
     """
-    groups = [
-        {
-            "group_id": "EU",
-            "description": "European Union - 15% ceiling rule for IEEPA Reciprocal",
-            "effective_date": date(2025, 8, 7),
-            "expiration_date": None,
-        },
-        {
-            "group_id": "UK",
-            "description": "United Kingdom - 232 Steel/Aluminum exception (25% not 50%)",
-            "effective_date": date(2025, 6, 4),
-            "expiration_date": None,
-        },
-        {
-            "group_id": "CN",
-            "description": "China - Full tariffs (301, Fentanyl, 232, Reciprocal)",
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        {
-            "group_id": "USMCA",
-            "description": "USMCA countries - Mexico, Canada (FTA treatment)",
-            "effective_date": date(2020, 7, 1),
-            "expiration_date": None,
-        },
-        {
-            "group_id": "default",
-            "description": "Default group for countries without special treatment",
-            "effective_date": date(2020, 1, 1),
-            "expiration_date": None,
-        },
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    groups = load_country_groups_from_csv()
 
     with app.app_context():
-        print("Populating country_groups (v5.0)...")
+        print("Populating country_groups (v19.0 CSV-driven)...")
         for group_data in groups:
             existing = CountryGroup.query.filter_by(group_id=group_data["group_id"]).first()
             if existing:
@@ -1387,68 +1116,18 @@ def populate_country_groups(app):
 def populate_country_group_members(app):
     """Populate country to group mappings.
 
+    v19.0 Update: Now reads from data/country_group_members.csv (CSV-driven).
+
     v5.0 Update (Dec 2025):
     - Maps country names (and ISO codes) to their groups
     - Supports multiple names per country (Germany, DE, DEU)
     - Membership is time-bound for events like Brexit
     """
-    members = [
-        # EU countries (27 member states + common variants)
-        {"country_code": "Germany", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "DE", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "France", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "FR", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Italy", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "IT", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Spain", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "ES", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Netherlands", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "NL", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Belgium", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "BE", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Poland", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "PL", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Austria", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "AT", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Ireland", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "IE", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Portugal", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "PT", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Greece", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "GR", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Sweden", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "SE", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Denmark", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "DK", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Finland", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "FI", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Czech Republic", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "CZ", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Romania", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "RO", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "Hungary", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-        {"country_code": "HU", "group_id": "EU", "effective_date": date(2025, 8, 7)},
-
-        # UK (separate since Brexit)
-        {"country_code": "United Kingdom", "group_id": "UK", "effective_date": date(2025, 6, 4)},
-        {"country_code": "UK", "group_id": "UK", "effective_date": date(2025, 6, 4)},
-        {"country_code": "GB", "group_id": "UK", "effective_date": date(2025, 6, 4)},
-        {"country_code": "Great Britain", "group_id": "UK", "effective_date": date(2025, 6, 4)},
-
-        # China
-        {"country_code": "China", "group_id": "CN", "effective_date": date(2024, 1, 1)},
-        {"country_code": "CN", "group_id": "CN", "effective_date": date(2024, 1, 1)},
-        {"country_code": "PRC", "group_id": "CN", "effective_date": date(2024, 1, 1)},
-
-        # USMCA
-        {"country_code": "Mexico", "group_id": "USMCA", "effective_date": date(2020, 7, 1)},
-        {"country_code": "MX", "group_id": "USMCA", "effective_date": date(2020, 7, 1)},
-        {"country_code": "Canada", "group_id": "USMCA", "effective_date": date(2020, 7, 1)},
-        {"country_code": "CA", "group_id": "USMCA", "effective_date": date(2020, 7, 1)},
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    members = load_country_group_members_from_csv()
 
     with app.app_context():
-        print("Populating country_group_members (v5.0)...")
+        print("Populating country_group_members (v19.0 CSV-driven)...")
         for member_data in members:
             existing = CountryGroupMember.query.filter_by(
                 country_code=member_data["country_code"],
@@ -1468,6 +1147,8 @@ def populate_country_group_members(app):
 def populate_program_rates(app):
     """Populate program-specific rates by country group.
 
+    v19.0 Update: Now reads from data/tariff_program_rates.csv (CSV-driven).
+
     v5.0 Update (Dec 2025):
     - Rates vary by country group (EU, UK, default)
     - Formula support for EU 15% ceiling rule
@@ -1479,156 +1160,11 @@ def populate_program_rates(app):
     - 232 Copper: 50% all countries
     - IEEPA Reciprocal: 10% default, formula '15pct_minus_mfn' for EU
     """
-    rates = [
-        # ===================================================================
-        # Section 232 Steel
-        # ===================================================================
-        {
-            "program_id": "section_232_steel",
-            "group_id": "default",
-            "rate": 0.50,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 6, 4),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "section_232_steel",
-            "group_id": "UK",
-            "rate": 0.25,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 6, 4),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # Section 232 Aluminum - 50% (UPDATED per 90 FR 10524, June 4, 2025)
-        # UK exception stays at 25%
-        # ===================================================================
-        {
-            "program_id": "section_232_aluminum",
-            "group_id": "default",
-            "rate": 0.50,  # UPDATED: 50% per 90 FR 10524 (June 4, 2025)
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 6, 4),
-            "expiration_date": None,
-        },
-        {
-            "program_id": "section_232_aluminum",
-            "group_id": "UK",
-            "rate": 0.25,  # UK exception stays at 25%
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 6, 4),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # Section 232 Copper (same for all countries)
-        # ===================================================================
-        {
-            "program_id": "section_232_copper",
-            "group_id": "default",
-            "rate": 0.50,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 7, 31),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # Section 232 Auto Parts - 25% (Proclamation 10908, May 3, 2025)
-        # USMCA-eligible parts can be exempt (filed with 9903.94.06)
-        # ===================================================================
-        {
-            "program_id": "section_232_auto",
-            "group_id": "default",
-            "rate": 0.25,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2025, 5, 3),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # Section 232 Semiconductors - 25% (CSMS #67400472, Jan 15, 2026)
-        # Products under 9903.79.01 subject to 25%, exemptions under 9903.79.09
-        # ===================================================================
-        {
-            "program_id": "section_232_semiconductor",
-            "group_id": "default",
-            "rate": 0.25,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2026, 1, 15),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # IEEPA Reciprocal
-        # ===================================================================
-        # Default: 10% flat
-        {
-            "program_id": "ieepa_reciprocal",
-            "group_id": "default",
-            "rate": 0.10,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-        # EU: Formula - 15% minus MFN base rate
-        {
-            "program_id": "ieepa_reciprocal",
-            "group_id": "EU",
-            "rate": None,  # Calculated at runtime
-            "rate_type": "formula",
-            "rate_formula": "15pct_minus_mfn",
-            "effective_date": date(2025, 8, 7),
-            "expiration_date": None,
-        },
-        # UK: 10% flat (not EU, so no ceiling rule)
-        {
-            "program_id": "ieepa_reciprocal",
-            "group_id": "UK",
-            "rate": 0.10,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # Section 301 (China only, but store for completeness)
-        # ===================================================================
-        {
-            "program_id": "section_301",
-            "group_id": "CN",
-            "rate": 0.25,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2018, 7, 6),
-            "expiration_date": None,
-        },
-
-        # ===================================================================
-        # IEEPA Fentanyl (China only)
-        # ===================================================================
-        {
-            "program_id": "ieepa_fentanyl",
-            "group_id": "CN",
-            "rate": 0.10,
-            "rate_type": "fixed",
-            "rate_formula": None,
-            "effective_date": date(2024, 1, 1),
-            "expiration_date": None,
-        },
-    ]
+    # v19.0: Load from CSV instead of hardcoded list
+    rates = load_program_rates_from_csv()
 
     with app.app_context():
-        print("Populating program_rates (v5.0)...")
+        print("Populating program_rates (v19.0 CSV-driven)...")
         for rate_data in rates:
             existing = ProgramRate.query.filter_by(
                 program_id=rate_data["program_id"],

@@ -1,0 +1,19 @@
+program_id,program_name,country,check_type,condition_handler,condition_param,inclusion_table,exclusion_table,filing_sequence,calculation_sequence,source_document,effective_date,expiration_date,disclaim_behavior
+section_301,Section 301 China Tariffs,CN,hts_lookup,none,,section_301_inclusions,section_301_exclusions,1,1,USTR_301_Notice.pdf,2018-07-06,,
+ieepa_fentanyl,IEEPA Fentanyl Tariff,CN,always,none,,,,2,2,IEEPA_Fentanyl_Notice.pdf,2024-01-01,,
+ieepa_fentanyl,IEEPA Fentanyl Tariff,HK,always,none,,,,2,2,IEEPA_Fentanyl_Notice.pdf,2024-01-01,,
+ieepa_fentanyl,IEEPA Fentanyl Tariff,MO,always,none,,,,2,2,IEEPA_Fentanyl_Notice.pdf,2024-01-01,,
+section_232_copper,Section 232 Copper,ALL,hts_lookup,handle_material_composition,copper,section_232_materials,,4,3,Section_232_Copper_Proclamation.pdf,2020-01-01,,required
+section_232_steel,Section 232 Steel,ALL,hts_lookup,handle_material_composition,steel,section_232_materials,,5,4,Section_232_Steel_Proclamation.pdf,2018-03-23,,omit
+section_232_aluminum,Section 232 Aluminum,ALL,hts_lookup,handle_material_composition,aluminum,section_232_materials,,6,5,Section_232_Aluminum_Proclamation.pdf,2018-03-23,,omit
+section_232_auto,Section 232 Auto Parts,ALL,hts_lookup,handle_material_composition,auto,section_232_materials,,7,6,Proclamation_10908_90FR14705_AutoParts.pdf,2025-05-03,,omit
+section_232_semiconductor,Section 232 Semiconductors,ALL,hts_lookup,handle_material_composition,semiconductor,section_232_materials,,8,7,CSMS_67400472_Semiconductor_Jan2026.pdf,2026-01-15,,omit
+ieepa_reciprocal,IEEPA Reciprocal Tariff,CN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,HK,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,MO,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,GB,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,JP,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,VN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,IN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,TW,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,KR,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,

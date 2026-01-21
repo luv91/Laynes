@@ -1,0 +1,9 @@
+program_id,calculation_type,base_on,compounds_with,source_doc,content_key,fallback_base_on,base_effect
+section_301,additive,product_value,,301_Notice.pdf,,,
+ieepa_fentanyl,additive,product_value,,IEEPA_Fentanyl.pdf,,,
+ieepa_reciprocal,additive,remaining_value,,IEEPA_Reciprocal.pdf,,,
+section_232_copper,on_portion,content_value,,CSMS_65794272_Copper_July2025.pdf,copper,full_value,subtract_from_remaining
+section_232_steel,on_portion,content_value,,232_Steel_Proclamation_10895.pdf,steel,full_value,subtract_from_remaining
+section_232_aluminum,on_portion,content_value,,232_Aluminum_Proclamation_10896.pdf,aluminum,full_value,subtract_from_remaining
+section_232_auto,on_portion,content_value,,Proclamation_10908_90FR14705_AutoParts.pdf,auto,full_value,subtract_from_remaining
+section_232_semiconductor,on_portion,content_value,,CSMS_67400472_Semiconductor_Jan2026.pdf,semiconductor,full_value,subtract_from_remaining
