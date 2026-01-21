@@ -291,6 +291,25 @@ def populate_tariff_programs(app):
             "expiration_date": None,
             "disclaim_behavior": "omit",  # Omit when not claimed (USMCA-eligible)
         },
+        # Section 232 - Semiconductors (CSMS #67400472, effective Jan 15, 2026)
+        # 25% tariff on processing units, ADP machines, and computer parts
+        # Products under 9903.79.01 are EXEMPT from IEEPA Reciprocal
+        {
+            "program_id": "section_232_semiconductor",
+            "program_name": "Section 232 Semiconductors",
+            "country": "ALL",
+            "check_type": "hts_lookup",
+            "condition_handler": "handle_material_composition",
+            "condition_param": "semiconductor",
+            "inclusion_table": "section_232_materials",
+            "exclusion_table": None,
+            "filing_sequence": 8,  # Display order: after Auto
+            "calculation_sequence": 7,  # Calc order: before IEEPA Reciprocal
+            "source_document": "CSMS_67400472_Semiconductor_Jan2026.pdf",
+            "effective_date": date(2026, 1, 15),
+            "expiration_date": None,
+            "disclaim_behavior": "omit",  # Omit when exempt (data center, R&D, etc.)
+        },
         # IEEPA Reciprocal - depends on Section 232 claims for unstacking
         # filing_sequence=3 (display after Fentanyl)
         # calculation_sequence=6 (calculate AFTER 232 to know remaining_value)
@@ -700,6 +719,7 @@ def populate_section_232_from_csv(app):
                     'steel': 'CSMS_65936570_Steel_Aug2025.pdf',
                     'aluminum': 'CSMS_65936615_Aluminum_Aug2025.pdf',
                     'auto': 'Proclamation_10908_90FR14705_AutoParts.pdf',
+                    'semiconductor': 'CSMS_67400472_Semiconductor_Jan2026.pdf',
                 }
 
                 # v11.0: Read article_type from CSV (data-driven)
@@ -1064,6 +1084,20 @@ def populate_program_codes(app):
         {"program_id": "section_232_auto", "action": "disclaim", "variant": None, "slice_type": "full",
          "chapter_99_code": "9903.94.06", "duty_rate": 0.0, "applies_to": "full",
          "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
+
+        # ===================================================================
+        # Section 232 Semiconductors - 25% (CSMS #67400472, Jan 15, 2026)
+        # Claim on semiconductor_slice, Disclaim for exemptions (data center, R&D, etc.)
+        # ===================================================================
+        {"program_id": "section_232_semiconductor", "action": "claim", "variant": None, "slice_type": "semiconductor_slice",
+         "chapter_99_code": "9903.79.01", "duty_rate": 0.25, "applies_to": "partial",
+         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
+        {"program_id": "section_232_semiconductor", "action": "disclaim", "variant": "exempt", "slice_type": "semiconductor_slice",
+         "chapter_99_code": "9903.79.09", "duty_rate": 0.0, "applies_to": "partial",
+         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
+        {"program_id": "section_232_semiconductor", "action": "disclaim", "variant": None, "slice_type": "full",
+         "chapter_99_code": "9903.79.09", "duty_rate": 0.0, "applies_to": "full",
+         "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf"},
     ]
 
     with app.app_context():
@@ -1117,6 +1151,7 @@ def populate_duty_rules(app):
         {"program_id": "section_232_steel", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Steel_Proclamation_10895.pdf", "content_key": "steel", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
         {"program_id": "section_232_aluminum", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Aluminum_Proclamation_10896.pdf", "content_key": "aluminum", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
         {"program_id": "section_232_auto", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf", "content_key": "auto", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
+        {"program_id": "section_232_semiconductor", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "CSMS_67400472_Semiconductor_Jan2026.pdf", "content_key": "semiconductor", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
     ]
 
     with app.app_context():
@@ -1514,6 +1549,20 @@ def populate_program_rates(app):
             "rate_type": "fixed",
             "rate_formula": None,
             "effective_date": date(2025, 5, 3),
+            "expiration_date": None,
+        },
+
+        # ===================================================================
+        # Section 232 Semiconductors - 25% (CSMS #67400472, Jan 15, 2026)
+        # Products under 9903.79.01 subject to 25%, exemptions under 9903.79.09
+        # ===================================================================
+        {
+            "program_id": "section_232_semiconductor",
+            "group_id": "default",
+            "rate": 0.25,
+            "rate_type": "fixed",
+            "rate_formula": None,
+            "effective_date": date(2026, 1, 15),
             "expiration_date": None,
         },
 

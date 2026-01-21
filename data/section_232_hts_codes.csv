@@ -972,3 +972,20 @@ hts_code,material,article_type,chapter_99_claim,chapter_99_disclaim,duty_rate
 8708.99.58,auto,part,9903.94.05,9903.94.06,0.25
 8708.99.68,auto,part,9903.94.05,9903.94.06,0.25
 8708.99.80,auto,part,9903.94.05,9903.94.06,0.25
+# Section 232 Semiconductors - CSMS #67400472 (effective 2026-01-15)
+8471.50.01,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.50.0110,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.50.0150,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.50.0190,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.80.10,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.80.1000,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.80.20,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.80.40,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8471.80.90,semiconductor,primary,9903.79.01,9903.79.09,0.25
+8473.30.10,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.1100,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.1180,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.20,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.51,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.5100,semiconductor,derivative,9903.79.01,9903.79.09,0.25
+8473.30.5150,semiconductor,derivative,9903.79.01,9903.79.09,0.25
