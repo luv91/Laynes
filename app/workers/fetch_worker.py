@@ -49,6 +49,10 @@ class FetchWorker:
             if not url:
                 raise ValueError("No URL in job")
 
+            # Special handling for Federal Register - use API instead of HTML scraping
+            if job.source == "federal_register":
+                return self._fetch_federal_register(job)
+
             # Detect content type from URL
             content_type = self._detect_content_type(url)
 
@@ -102,10 +106,11 @@ class FetchWorker:
                 content_hash=content_hash,
                 content_type=content_type,
                 content_size=len(raw_bytes),
-                raw_bytes=raw_bytes,
                 status="fetched",
                 fetched_at=datetime.utcnow(),
             )
+            # Store content in object storage (local filesystem)
+            doc.store_content(raw_bytes, content_type)
 
             # Set URLs based on content type
             if content_type == "text/xml":
@@ -178,4 +183,106 @@ class FetchWorker:
             doc.metadata_json = metadata
             db.session.commit()
 
+        return doc
+
+    def _fetch_federal_register(self, job: IngestJob) -> Optional[OfficialDocument]:
+        """
+        Fetch Federal Register document using API (not HTML scraping).
+
+        Federal Register blocks HTML scraping with CAPTCHA. Use their API instead:
+        https://www.federalregister.gov/developers/documentation/api/v1
+
+        Args:
+            job: IngestJob with external_id = document number (e.g., "2025-12052")
+
+        Returns:
+            OfficialDocument with full text content
+        """
+        doc_number = job.external_id
+        api_url = f"https://www.federalregister.gov/api/v1/documents/{doc_number}.json"
+
+        logger.info(f"Fetching Federal Register {doc_number} via API: {api_url}")
+
+        # Fetch API JSON
+        response = requests.get(api_url, timeout=self.TIMEOUT)
+        response.raise_for_status()
+        api_data = response.json()
+
+        # Get full text - prefer raw_text_url, fallback to abstract
+        full_text = None
+        raw_text_url = api_data.get("raw_text_url")
+
+        if raw_text_url:
+            try:
+                text_response = requests.get(raw_text_url, timeout=self.TIMEOUT)
+                text_response.raise_for_status()
+                full_text = text_response.text
+            except Exception as e:
+                logger.warning(f"Could not fetch raw_text for {doc_number}: {e}")
+
+        # Fallback to abstract + body_html if raw_text not available
+        if not full_text:
+            abstract = api_data.get("abstract", "")
+            body = api_data.get("body_html", "")
+            full_text = f"{abstract}\n\n{body}" if body else abstract
+
+        if not full_text:
+            raise ValueError(f"No text content available for {doc_number}")
+
+        raw_bytes = full_text.encode("utf-8")
+        content_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+        # Check for duplicate
+        existing = OfficialDocument.query.filter_by(content_hash=content_hash).first()
+        if existing:
+            logger.info(f"Document already exists with hash {content_hash[:16]}...")
+            job.document_id = existing.id
+            job.content_hash = content_hash
+            job.status = "fetched"
+            db.session.commit()
+            return existing
+
+        # Create document with metadata from API
+        doc = OfficialDocument(
+            source=job.source,
+            external_id=doc_number,
+            content_hash=content_hash,
+            content_type="text/plain",  # Raw text from API
+            content_size=len(raw_bytes),
+            status="fetched",
+            fetched_at=datetime.utcnow(),
+            title=api_data.get("title"),
+            html_url=api_data.get("html_url"),
+            xml_url=api_data.get("full_text_xml_url"),
+        )
+        # Store content in object storage (local filesystem)
+        doc.store_content(raw_bytes, "text/plain")
+
+        # Set publication date
+        if api_data.get("publication_date"):
+            from datetime import date as date_type
+            try:
+                doc.publication_date = date_type.fromisoformat(api_data["publication_date"])
+            except ValueError:
+                pass
+
+        # Store useful metadata
+        doc.metadata_json = {
+            "document_number": doc_number,
+            "type": api_data.get("type"),
+            "agencies": [a.get("name") for a in api_data.get("agencies", [])],
+            "citation": api_data.get("citation"),
+            "cfr_references": api_data.get("cfr_references", []),
+            "significant": api_data.get("significant"),
+        }
+
+        db.session.add(doc)
+        db.session.flush()
+
+        job.document_id = doc.id
+        job.content_hash = content_hash
+        job.status = "fetched"
+        db.session.commit()
+
+        logger.info(f"Fetched Federal Register {doc_number}: {len(raw_bytes)} bytes, title: {doc.title[:50] if doc.title else 'N/A'}...")
         return doc

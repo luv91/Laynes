@@ -324,6 +324,45 @@ def get_models():
 # v6.0: Country Normalization and Data-Driven Country Scope
 # ============================================================================
 
+# v14.0: Hardcoded fallback mapping for common country names used in tariff contexts
+# This ensures the system works even when country_aliases table is empty
+COUNTRY_FALLBACK_MAP = {
+    # Full names to ISO codes
+    "china": "CN",
+    "hong kong": "HK",
+    "macau": "MO",
+    "macao": "MO",
+    "taiwan": "TW",
+    "japan": "JP",
+    "south korea": "KR",
+    "korea": "KR",
+    "vietnam": "VN",
+    "india": "IN",
+    "germany": "DE",
+    "united kingdom": "GB",
+    "great britain": "GB",
+    "mexico": "MX",
+    "canada": "CA",
+    # ISO codes (passthrough)
+    "cn": "CN",
+    "hk": "HK",
+    "mo": "MO",
+    "tw": "TW",
+    "jp": "JP",
+    "kr": "KR",
+    "vn": "VN",
+    "in": "IN",
+    "de": "DE",
+    "gb": "GB",
+    "mx": "MX",
+    "ca": "CA",
+    # Common variants
+    "prc": "CN",
+    "peoples republic of china": "CN",
+    "people's republic of china": "CN",
+}
+
+
 def normalize_country(country_input: str) -> dict:
     """
     v6.0: Normalize country input to standardized ISO code.
@@ -378,7 +417,18 @@ def normalize_country(country_input: str) -> dict:
                 "normalized": True
             }
 
-        # Fallback: if not found, return input as-is
+        # v14.0: Hardcoded fallback when country_aliases table is empty
+        if alias_norm in COUNTRY_FALLBACK_MAP:
+            iso2 = COUNTRY_FALLBACK_MAP[alias_norm]
+            return {
+                "iso_alpha2": iso2,
+                "iso_alpha3": None,
+                "canonical_name": country_input,
+                "original_input": country_input,
+                "normalized": True  # Treated as normalized via fallback
+            }
+
+        # Final fallback: if not found anywhere, return input as-is
         # This maintains backwards compatibility
         return {
             "iso_alpha2": country_input.upper()[:2] if len(country_input) == 2 else None,
@@ -822,9 +872,14 @@ def get_applicable_programs(country: str, hts_code: str, import_date: Optional[s
 
         check_date = date.fromisoformat(import_date) if import_date else date.today()
 
+        # v14.0: Normalize country to ISO code for proper tariff_programs lookup
+        # The tariff_programs table stores ISO codes (CN, HK, MO) not full names (China)
+        normalized = normalize_country(country)
+        country_iso = normalized.get("iso_alpha2") or country
+
         # Query programs that apply to this country or ALL countries
         programs = TariffProgram.query.filter(
-            (TariffProgram.country == country) | (TariffProgram.country == "ALL"),
+            (TariffProgram.country == country_iso) | (TariffProgram.country == "ALL"),
             TariffProgram.effective_date <= check_date,
             (TariffProgram.expiration_date.is_(None)) | (TariffProgram.expiration_date > check_date)
         ).order_by(TariffProgram.filing_sequence).all()

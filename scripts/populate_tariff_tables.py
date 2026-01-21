@@ -10,8 +10,17 @@ Usage:
     cd lanes
     pipenv run python scripts/populate_tariff_tables.py
 
-To reset tables:
+To reset tables (drop all data and reload from CSV):
     pipenv run python scripts/populate_tariff_tables.py --reset
+
+To seed only if empty (preserves runtime data - used in Railway deploys):
+    pipenv run python scripts/populate_tariff_tables.py --seed-if-empty
+
+v17.0 Update (Jan 2026) - DB AS SOURCE OF TRUTH:
+- Added --seed-if-empty flag: Only loads CSV if temporal tables are empty
+- This preserves pipeline-discovered rates, evidence packets, and audit history
+- Railway deploys now use --seed-if-empty instead of --reset
+- Critical fix: Section301Rate table no longer deleted on < 10000 rows
 
 TARIFF RATES (January 2026 - Updated per 90 FR 10524):
 - Base Duty (HTS 8544.42.90.90): 2.6%
@@ -148,7 +157,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "section_301",
             "program_name": "Section 301 China Tariffs",
-            "country": "China",
+            "country": "CN",  # ISO 2-letter code
             "check_type": "hts_lookup",
             "condition_handler": "none",
             "condition_param": None,
@@ -164,7 +173,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_fentanyl",
             "program_name": "IEEPA Fentanyl Tariff",
-            "country": "China",
+            "country": "CN",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "none",
             "condition_param": None,
@@ -180,7 +189,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_fentanyl",
             "program_name": "IEEPA Fentanyl Tariff",
-            "country": "Hong Kong",
+            "country": "HK",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "none",
             "condition_param": None,
@@ -196,7 +205,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_fentanyl",
             "program_name": "IEEPA Fentanyl Tariff",
-            "country": "Macau",
+            "country": "MO",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "none",
             "condition_param": None,
@@ -270,7 +279,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "China",
+            "country": "CN",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -286,7 +295,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "Hong Kong",
+            "country": "HK",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -302,7 +311,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "Macau",
+            "country": "MO",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -320,7 +329,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "UK",
+            "country": "GB",  # ISO 2-letter code for UK
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -335,7 +344,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "Japan",
+            "country": "JP",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -350,7 +359,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "Vietnam",
+            "country": "VN",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -365,7 +374,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "India",
+            "country": "IN",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -380,7 +389,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "Taiwan",
+            "country": "TW",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -395,7 +404,7 @@ def populate_tariff_programs(app):
         {
             "program_id": "ieepa_reciprocal",
             "program_name": "IEEPA Reciprocal Tariff",
-            "country": "South Korea",
+            "country": "KR",  # ISO 2-letter code
             "check_type": "always",
             "condition_handler": "handle_dependency",
             "condition_param": "section_232",
@@ -1086,101 +1095,73 @@ def populate_duty_rules(app):
         print(f"  Processed {len(rules)} duty rules")
 
 
-def populate_annex_ii_exclusions(app):
-    """Populate IEEPA Annex II exclusions (HTS codes exempt from Reciprocal tariffs).
+def populate_annex_ii_exclusions(app, seed_if_empty=False):
+    """Populate IEEPA Annex II exclusions from CSV.
 
-    v4.0 Update (Dec 2025):
-    - New table for HTS codes exempt from IEEPA Reciprocal per Annex II
-    - Includes pharmaceuticals, chemicals, critical minerals
-    - Uses prefix matching: 2934 matches 2934.99.9050
+    v18.0 Update (Jan 2026):
+    - Loads from data/annex_ii_exemptions.csv (consolidated CSV)
+    - Removed hardcoded list - CSV is single source of truth
+    - Added seed_if_empty parameter for pipeline compatibility
 
-    Note: This is sample data. Real Annex II list is much larger.
-    HTS codes are stored as prefixes (4, 6, 8, or 10 digits).
+    CSV columns: hts_prefix, description, exemption_code, category, source, effective_date
 
-    Source: Executive Order on Reciprocal Tariffs, Annex II
+    Source: EO 14257 Annex II, EO 14346 additions
     """
-    exclusions = [
-        # Pharmaceutical ingredients (Chapter 29)
-        {"hts_code": "2934", "description": "Nucleic acids and their salts, heterocyclic compounds",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2937", "description": "Hormones, prostaglandins, thromboxanes",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2941", "description": "Antibiotics",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2942", "description": "Other organic compounds",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
+    import csv
+    from pathlib import Path
+    from datetime import datetime
 
-        # Pharmaceutical preparations (Chapter 30)
-        {"hts_code": "3001", "description": "Glands, organs, extracts for organo-therapeutic uses",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "3002", "description": "Blood, vaccines, toxins, cultures",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "3003", "description": "Medicaments, not in dosage form",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "3004", "description": "Medicaments in measured doses",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
+    csv_path = Path(__file__).parent.parent / "data" / "annex_ii_exemptions.csv"
 
-        # Critical minerals (Chapter 26, 28, 80, 81)
-        {"hts_code": "2602", "description": "Manganese ores and concentrates",
-         "category": "critical_mineral", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2610", "description": "Chromium ores and concentrates",
-         "category": "critical_mineral", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2611", "description": "Tungsten ores and concentrates",
-         "category": "critical_mineral", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "8001", "description": "Unwrought tin",
-         "category": "critical_mineral", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "8101", "description": "Tungsten (wolfram) and articles thereof",
-         "category": "critical_mineral", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-
-        # Chemicals (Chapter 28)
-        {"hts_code": "2801", "description": "Fluorine, chlorine, bromine, iodine",
-         "category": "chemical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-        {"hts_code": "2804", "description": "Hydrogen, rare gases, oxygen, nitrogen",
-         "category": "chemical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-
-        # Plasmids (our UK test case)
-        {"hts_code": "293499", "description": "Other heterocyclic compounds, nucleic acid-based",
-         "category": "pharmaceutical", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-
-        # v7.0: Phoebe example TC-v7.0-006 - Computer parts exempt from IEEPA Reciprocal
-        {"hts_code": "84733051", "description": "Parts of ADP machines, printed circuit assemblies",
-         "category": "semiconductor", "source_doc": "IEEPA_Reciprocal_AnnexII.pdf",
-         "effective_date": date(2024, 1, 1), "expiration_date": None},
-    ]
+    if not csv_path.exists():
+        print(f"  ERROR: {csv_path} not found. Annex II exclusions cannot be imported.")
+        return 0
 
     with app.app_context():
-        print("Populating ieepa_annex_ii_exclusions (v4.0)...")
-        for exc_data in exclusions:
-            existing = IeepaAnnexIIExclusion.query.filter_by(
-                hts_code=exc_data["hts_code"]
-            ).first()
-            if existing:
-                # Update existing record
-                for key, value in exc_data.items():
-                    setattr(existing, key, value)
-                print(f"  Updated HTS {exc_data['hts_code']} ({exc_data['category']})")
-            else:
-                exclusion = IeepaAnnexIIExclusion(**exc_data)
-                db.session.add(exclusion)
-                print(f"  Added HTS {exc_data['hts_code']} ({exc_data['category']})")
+        existing_count = IeepaAnnexIIExclusion.query.count()
+
+        if seed_if_empty and existing_count > 0:
+            print(f"ieepa_annex_ii_exclusions has {existing_count} rows - PRESERVING (seed-if-empty mode)")
+            return existing_count
+
+        print(f"Importing Annex II exclusions from {csv_path.name}...")
+
+        imported = 0
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                hts_code = row['hts_prefix'].replace('.', '')
+                description = row['description']
+                category = row['category']
+                source_doc = row['source']
+
+                effective_date_str = row.get('effective_date', '2025-04-05')
+                try:
+                    effective_date = datetime.strptime(effective_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    effective_date = date(2025, 4, 5)
+
+                existing = IeepaAnnexIIExclusion.query.filter_by(hts_code=hts_code).first()
+                if existing:
+                    existing.description = description
+                    existing.category = category
+                    existing.source_doc = source_doc
+                    existing.effective_date = effective_date
+                else:
+                    exclusion = IeepaAnnexIIExclusion(
+                        hts_code=hts_code,
+                        description=description,
+                        category=category,
+                        source_doc=source_doc,
+                        effective_date=effective_date,
+                        expiration_date=None
+                    )
+                    db.session.add(exclusion)
+                imported += 1
+
         db.session.commit()
-        print(f"  Processed {len(exclusions)} Annex II exclusions")
+        print(f"  Imported {imported} Annex II exclusions from CSV")
+        return imported
 
 
 # =============================================================================
@@ -1730,9 +1711,11 @@ def verify_data(app):
         print(f"  ieepa_rates: {ieepa_count} rows")
 
 
-def populate_section_232_temporal(app):
+def populate_section_232_temporal(app, seed_if_empty=False):
     """
     v13.0: Populate temporal Section 232 rates table.
+
+    v17.0: Added seed_if_empty parameter to preserve runtime data.
 
     Creates historical rate periods for all HTS codes in section_232_materials.
     See scripts/migrate_232_to_temporal.py for the historical rate definitions.
@@ -1767,7 +1750,8 @@ def populate_section_232_temporal(app):
         # Check if already populated
         existing_count = Section232Rate.query.count()
         if existing_count > 0:
-            print(f"section_232_rates already has {existing_count} rows - skipping")
+            mode_msg = " (seed-if-empty mode)" if seed_if_empty else ""
+            print(f"section_232_rates has {existing_count} rows - PRESERVING{mode_msg}")
             return
 
         print("Populating section_232_rates temporal table...")
@@ -1802,104 +1786,84 @@ def populate_section_232_temporal(app):
         print(f"  Created {rows_created} temporal rows in section_232_rates")
 
 
-def populate_ieepa_temporal(app):
-    """
-    v13.0: Populate temporal IEEPA rates table.
+def populate_ieepa_temporal(app, seed_if_empty=False):
+    """Populate temporal IEEPA rates table from CSV.
 
-    Creates historical rate periods for IEEPA programs (Fentanyl and Reciprocal).
-    See scripts/migrate_ieepa_to_temporal.py for the historical rate definitions.
+    v18.0 Update (Jan 2026):
+    - Loads from data/ieepa_rates_temporal.csv (consolidated CSV)
+    - Removed hardcoded IEEPA_HISTORY - CSV is single source of truth
+    - Added seed_if_empty parameter for pipeline compatibility
+
+    CSV columns: program_type, country_code, chapter_99_code, duty_rate, variant,
+                 rate_type, effective_start, effective_end, source_doc
     """
+    import csv
+    from pathlib import Path
+    from datetime import datetime
     from decimal import Decimal
 
-    # Countries subject to IEEPA Fentanyl
-    FENTANYL_COUNTRIES = ['CN', 'HK', 'MO']
+    csv_path = Path(__file__).parent.parent / "data" / "ieepa_rates_temporal.csv"
 
-    # Countries subject to IEEPA Reciprocal
-    RECIPROCAL_COUNTRIES = ['CN', 'HK', 'MO', 'GB', 'JP', 'VN', 'IN', 'TW', 'KR']
-
-    # Historical IEEPA rate periods from Executive Orders
-    IEEPA_HISTORY = [
-        # Fentanyl Phase 1: EO 14195 (Feb 4, 2025) - 10% for all
-        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
-           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
-           'effective_start': date(2025, 2, 4), 'effective_end': date(2025, 4, 8),
-           'source_doc': 'EO 14195 - Fentanyl tariff original'} for c in FENTANYL_COUNTRIES],
-
-        # Fentanyl Phase 2: EO 14257 (Apr 9, 2025) - China doubled to 20%
-        {'program_type': 'fentanyl', 'country_code': 'CN', 'chapter_99_code': '9903.01.24',
-         'duty_rate': Decimal('0.20'), 'variant': None, 'rate_type': 'ad_valorem',
-         'effective_start': date(2025, 4, 9), 'effective_end': date(2025, 11, 14),
-         'source_doc': 'EO 14257 - Fentanyl doubled for China'},
-
-        # Fentanyl HK/MO stayed at 10% during Apr-Nov 2025
-        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
-           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
-           'effective_start': date(2025, 4, 9), 'effective_end': date(2025, 11, 14),
-           'source_doc': 'EO 14257 - Fentanyl HK/MO unchanged'} for c in ['HK', 'MO']],
-
-        # Fentanyl Phase 3: EO 14357 (Nov 15, 2025) - reduced back to 10%
-        *[{'program_type': 'fentanyl', 'country_code': c, 'chapter_99_code': '9903.01.24',
-           'duty_rate': Decimal('0.10'), 'variant': None, 'rate_type': 'ad_valorem',
-           'effective_start': date(2025, 11, 15), 'effective_end': None,
-           'source_doc': 'EO 14357 - Fentanyl rate reduced'} for c in FENTANYL_COUNTRIES],
-
-        # Reciprocal Standard (10% for all countries)
-        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.25',
-           'duty_rate': Decimal('0.10'), 'variant': 'standard', 'rate_type': 'ad_valorem',
-           'effective_start': date(2025, 4, 9), 'effective_end': None,
-           'source_doc': 'EO 14257 - Reciprocal Tariff (standard)'} for c in RECIPROCAL_COUNTRIES],
-
-        # Reciprocal Annex II Exempt (0% - exemption)
-        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.32',
-           'duty_rate': Decimal('0.00'), 'variant': 'annex_ii_exempt', 'rate_type': 'exempt',
-           'effective_start': date(2025, 4, 9), 'effective_end': None,
-           'source_doc': 'EO 14257 Annex II - Exemptions'} for c in RECIPROCAL_COUNTRIES],
-
-        # Reciprocal Section 232 Exempt (0% for reciprocal, 232 takes precedence)
-        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.33',
-           'duty_rate': Decimal('0.00'), 'variant': 'section_232_exempt', 'rate_type': 'exempt',
-           'effective_start': date(2025, 4, 9), 'effective_end': None,
-           'source_doc': 'EO 14257 - Section 232 exemption'} for c in RECIPROCAL_COUNTRIES],
-
-        # Reciprocal US Content Exempt (>= 20% US content)
-        *[{'program_type': 'reciprocal', 'country_code': c, 'chapter_99_code': '9903.01.34',
-           'duty_rate': Decimal('0.00'), 'variant': 'us_content_exempt', 'rate_type': 'exempt',
-           'effective_start': date(2025, 4, 9), 'effective_end': None,
-           'source_doc': 'EO 14257 - US Content exemption'} for c in RECIPROCAL_COUNTRIES],
-    ]
+    if not csv_path.exists():
+        print(f"  ERROR: {csv_path} not found. IEEPA rates cannot be imported.")
+        return 0
 
     with app.app_context():
-        # Check if already populated
         existing_count = IeepaRate.query.count()
-        if existing_count > 0:
-            print(f"ieepa_rates already has {existing_count} rows - skipping")
-            return
 
-        print("Populating ieepa_rates temporal table...")
+        if existing_count > 0:
+            mode_msg = " (seed-if-empty mode)" if seed_if_empty else ""
+            print(f"ieepa_rates has {existing_count} rows - PRESERVING{mode_msg}")
+            return existing_count
+
+        print(f"Importing IEEPA rates from {csv_path.name}...")
 
         rows_created = 0
-        for period in IEEPA_HISTORY:
-            rate = IeepaRate(
-                program_type=period['program_type'],
-                country_code=period['country_code'],
-                chapter_99_code=period['chapter_99_code'],
-                duty_rate=period['duty_rate'],
-                variant=period.get('variant'),
-                rate_type=period.get('rate_type', 'ad_valorem'),
-                effective_start=period['effective_start'],
-                effective_end=period['effective_end'],
-                source_doc=period['source_doc'],
-                created_by='populate_tariff_tables.py v13.0',
-            )
-            db.session.add(rate)
-            rows_created += 1
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                effective_start_str = row.get('effective_start', '')
+                effective_end_str = row.get('effective_end', '')
+
+                try:
+                    effective_start = datetime.strptime(effective_start_str, '%Y-%m-%d').date()
+                except ValueError:
+                    effective_start = date(2025, 4, 9)
+
+                effective_end = None
+                if effective_end_str and effective_end_str.strip():
+                    try:
+                        effective_end = datetime.strptime(effective_end_str.strip(), '%Y-%m-%d').date()
+                    except ValueError:
+                        effective_end = None
+
+                rate = IeepaRate(
+                    program_type=row['program_type'],
+                    country_code=row['country_code'],
+                    chapter_99_code=row['chapter_99_code'],
+                    duty_rate=Decimal(row['duty_rate']),
+                    variant=row.get('variant') or None,
+                    rate_type=row.get('rate_type', 'ad_valorem'),
+                    effective_start=effective_start,
+                    effective_end=effective_end,
+                    source_doc=row.get('source_doc', ''),
+                    created_by='populate_tariff_tables.py v18.0 (CSV)',
+                )
+                db.session.add(rate)
+                rows_created += 1
 
         db.session.commit()
         print(f"  Created {rows_created} temporal rows in ieepa_rates")
+        return rows_created
 
 
-def populate_section_301_temporal(app):
+def populate_section_301_temporal(app, seed_if_empty=False):
     """Populate section_301_rates temporal table from unified CSV.
+
+    v17.0 Update (Jan 2026) - SEED-IF-EMPTY SUPPORT:
+    - New seed_if_empty parameter: if True, skip if ANY data exists
+    - This preserves pipeline-discovered rates across deploys
+    - Critical for DB-as-source-of-truth architecture
 
     v17.0 Update (Jan 2026) - ROLE COLUMN SUPPORT:
     - Added 'role' column: 'impose' (default) or 'exclude' (exclusion granted)
@@ -1927,13 +1891,20 @@ def populate_section_301_temporal(app):
         return 0
 
     with app.app_context():
-        # Check if already populated with complete data
+        # Check if already populated
         existing_count = Section301Rate.query.count()
+
+        # v17.0: seed_if_empty mode - preserve ALL existing data
+        if seed_if_empty and existing_count > 0:
+            print(f"section_301_rates has {existing_count} rows - PRESERVING (seed-if-empty mode)")
+            return existing_count
+
+        # Legacy behavior: Skip if >= 10000 rows (complete CSV import)
         if existing_count >= 10000:
             print(f"section_301_rates already has {existing_count} rows - skipping")
             return existing_count
 
-        # Clear partial imports
+        # Clear partial imports (only in non-seed-if-empty mode)
         if existing_count > 0:
             print(f"  Clearing {existing_count} partial rows from section_301_rates...")
             Section301Rate.query.delete()
@@ -2019,14 +1990,30 @@ def populate_section_301_temporal(app):
 def main():
     parser = argparse.ArgumentParser(description="Populate tariff tables with sample data")
     parser.add_argument("--reset", action="store_true", help="Drop and recreate tables")
+    parser.add_argument("--seed-if-empty", action="store_true",
+                       help="Only seed tables if empty (preserves runtime data)")
     args = parser.parse_args()
 
-    print("=== Tariff Tables Population Script (v16.0 - Unified Temporal CSV) ===\n")
+    # Mutual exclusivity check
+    if args.reset and args.seed_if_empty:
+        print("ERROR: Cannot use --reset and --seed-if-empty together")
+        print("  --reset: Drops all tables and reloads from CSV")
+        print("  --seed-if-empty: Only loads CSV if tables are empty (preserves data)")
+        return
+
+    seed_if_empty = args.seed_if_empty
+
+    if seed_if_empty:
+        print("=== Tariff Tables Population Script (v17.0 - Seed If Empty Mode) ===\n")
+        print("Mode: --seed-if-empty - Will only seed tables that are empty")
+        print("      Runtime data (pipeline discoveries, evidence) will be preserved.\n")
+    else:
+        print("=== Tariff Tables Population Script (v17.0 - DB as Source of Truth) ===\n")
 
     # Use the existing Flask app factory
     app = create_app()
 
-    # Initialize tables
+    # Initialize tables (create if not exist, never drop unless --reset)
     init_tables(app, reset=args.reset)
 
     # Populate all tables (v4.0 and earlier)
@@ -2052,11 +2039,13 @@ def main():
     populate_hts_base_rates(app)
 
     # v13.0: Temporal rate tables (must run AFTER section_232_materials is populated)
-    populate_section_232_temporal(app)
-    populate_ieepa_temporal(app)
+    # v17.0: Pass seed_if_empty to preserve runtime data
+    populate_section_232_temporal(app, seed_if_empty=seed_if_empty)
+    populate_ieepa_temporal(app, seed_if_empty=seed_if_empty)
 
     # v15.0: Section 301 temporal (after CSV import)
-    populate_section_301_temporal(app)
+    # v17.0: Critical - this is where pipeline data was being overwritten
+    populate_section_301_temporal(app, seed_if_empty=seed_if_empty)
 
     # Verify data
     verify_data(app)

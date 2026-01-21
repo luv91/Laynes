@@ -42,6 +42,7 @@ from app.web import create_app
 from app.web.db import db
 from app.workers.pipeline import DocumentPipeline
 from app.models import IngestJob
+from app.sync import sync_to_postgresql, is_sync_enabled
 
 # Configure logging
 logging.basicConfig(
@@ -124,6 +125,9 @@ def run_once(max_jobs: int, source: Optional[str], reprocess: bool):
     # Summary
     print_summary(results)
 
+    # Auto-sync to PostgreSQL if enabled
+    run_auto_sync(results)
+
 
 def run_daemon(app, max_jobs: int, source: Optional[str], interval: int, reprocess: bool):
     """Run continuously, processing jobs as they arrive."""
@@ -147,6 +151,9 @@ def run_daemon(app, max_jobs: int, source: Optional[str], interval: int, reproce
                         results = pipeline.process_queue(max_jobs=max_jobs, source_filter=source)
 
                     print_summary(results)
+
+                    # Auto-sync to PostgreSQL if enabled
+                    run_auto_sync(results)
                 else:
                     logger.debug("Queue empty. Waiting...")
 
@@ -240,6 +247,51 @@ def print_summary(results: list):
         for r in results:
             if r.get("status") == "failed":
                 logger.warning(f"  - {r.get('job_id')}: {r.get('errors', ['Unknown error'])[0]}")
+
+
+def run_auto_sync(results: list):
+    """Run auto-sync to PostgreSQL if enabled and changes were made."""
+    if not results:
+        return
+
+    # Check if sync is enabled
+    if not is_sync_enabled():
+        logger.debug("Auto-sync disabled (set AUTO_SYNC_ENABLED=true and DATABASE_URL_REMOTE)")
+        return
+
+    # Only sync if there were changes
+    total_committed = sum(r.get("changes_committed", 0) for r in results)
+    successful_jobs = sum(1 for r in results if r.get("status") in ("committed", "completed_no_changes"))
+
+    if successful_jobs == 0:
+        logger.debug("No successful jobs to sync")
+        return
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("AUTO-SYNC: SQLite → PostgreSQL")
+    logger.info("=" * 60)
+
+    try:
+        sync_results = sync_to_postgresql()
+
+        if sync_results.get('error'):
+            logger.error(f"Sync error: {sync_results['error']}")
+            return
+
+        total_added = sync_results.get('total_added', 0)
+        total_errors = sync_results.get('total_errors', 0)
+
+        logger.info(f"Sync complete: {total_added} rows added, {total_errors} errors")
+
+        # Log per-table details if there were additions
+        if total_added > 0:
+            for table, stats in sync_results.get('tables', {}).items():
+                if isinstance(stats, dict) and stats.get('added', 0) > 0:
+                    logger.info(f"  - {table}: +{stats['added']}")
+
+    except Exception as e:
+        logger.exception(f"Auto-sync failed: {e}")
 
 
 @click.command()

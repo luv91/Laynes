@@ -4,11 +4,17 @@ Document Store Models
 Stores raw official documents with full audit trail:
 - OfficialDocument: The raw document with content hash
 - DocumentChunk: Chunks for RAG retrieval with embeddings
+
+Storage Architecture:
+- Blobs (raw_bytes) stored on local filesystem via storage_uri
+- Metadata stored in PostgreSQL
+- content property provides transparent access (storage_uri or legacy raw_bytes)
 """
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
+import mimetypes
 
 from app.web.db import db
 from app.web.db.models.base import BaseModel
@@ -41,7 +47,8 @@ class OfficialDocument(BaseModel):
     html_url = db.Column(db.String(500))
 
     # Raw content
-    raw_bytes = db.Column(db.LargeBinary)  # Original file bytes
+    raw_bytes = db.Column(db.LargeBinary)  # Original file bytes (legacy, nullable for new docs)
+    storage_uri = db.Column(db.String(500))  # Object storage URI: "local://...", "s3://..."
     content_hash = db.Column(db.String(64), nullable=False, index=True)  # SHA256
     content_type = db.Column(db.String(50))  # application/pdf, text/xml, etc.
     content_size = db.Column(db.Integer)  # Size in bytes
@@ -82,6 +89,7 @@ class OfficialDocument(BaseModel):
             "content_hash": self.content_hash,
             "content_type": self.content_type,
             "content_size": self.content_size,
+            "storage_uri": self.storage_uri,
             "title": self.title,
             "publication_date": self.publication_date.isoformat() if self.publication_date else None,
             "effective_date": self.effective_date.isoformat() if self.effective_date else None,
@@ -89,6 +97,65 @@ class OfficialDocument(BaseModel):
             "fetched_at": self.fetched_at.isoformat() if self.fetched_at else None,
             "chunk_count": self.chunks.count() if self.chunks else 0,
         }
+
+    @property
+    def content(self) -> Optional[bytes]:
+        """
+        Get raw document content (from storage or legacy raw_bytes).
+
+        Returns bytes from:
+        1. storage_uri (local filesystem or S3) - for new documents
+        2. raw_bytes column - fallback for legacy documents
+
+        Returns:
+            Raw bytes of the document, or None if not available
+        """
+        if self.storage_uri:
+            from app.storage import get_storage
+            try:
+                return get_storage().get(self.storage_uri)
+            except FileNotFoundError:
+                # Fall back to raw_bytes if storage file missing
+                pass
+        return self.raw_bytes
+
+    def store_content(self, data: bytes, content_type: str) -> str:
+        """
+        Store document content in object storage.
+
+        Args:
+            data: Raw bytes to store
+            content_type: MIME type (e.g., "application/xml")
+
+        Returns:
+            Storage URI (e.g., "local://federal_register/2024-12345/abc123.xml")
+        """
+        from app.storage import get_storage
+        storage = get_storage()
+
+        # Generate storage key: source/external_id/content_hash_prefix.ext
+        ext = self._get_extension(content_type)
+        safe_external_id = self.external_id.replace("/", "_")
+        key = f"{self.source}/{safe_external_id}/{self.content_hash[:16]}{ext}"
+
+        self.storage_uri = storage.put(key, data, content_type)
+        self.raw_bytes = None  # Don't store in database
+        return self.storage_uri
+
+    def _get_extension(self, content_type: str) -> str:
+        """Get file extension from MIME type."""
+        ext_map = {
+            "application/xml": ".xml",
+            "text/xml": ".xml",
+            "application/pdf": ".pdf",
+            "text/html": ".html",
+            "text/plain": ".txt",
+        }
+        if content_type in ext_map:
+            return ext_map[content_type]
+        # Try mimetypes module
+        ext = mimetypes.guess_extension(content_type)
+        return ext if ext else ".bin"
 
 
 class DocumentChunk(BaseModel):

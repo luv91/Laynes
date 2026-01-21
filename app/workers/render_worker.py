@@ -55,18 +55,20 @@ class RenderWorker:
 
         try:
             content_type = doc.content_type or ""
+            # Use doc.content property (reads from storage_uri or legacy raw_bytes)
+            raw_content = doc.content
 
             if "xml" in content_type:
-                canonical_text = self._render_xml(doc.raw_bytes)
+                canonical_text = self._render_xml(raw_content)
             elif "html" in content_type:
-                canonical_text = self._render_html(doc.raw_bytes)
+                canonical_text = self._render_html(raw_content)
             elif "pdf" in content_type:
-                canonical_text = self._render_pdf(doc.raw_bytes)
+                canonical_text = self._render_pdf(raw_content)
             elif "wordprocessingml" in content_type or "docx" in content_type.lower():
-                canonical_text = self._render_docx(doc.raw_bytes)
+                canonical_text = self._render_docx(raw_content)
             else:
                 # Default to HTML parsing
-                canonical_text = self._render_html(doc.raw_bytes)
+                canonical_text = self._render_html(raw_content)
 
             doc.canonical_text = canonical_text
             doc.status = "rendered"

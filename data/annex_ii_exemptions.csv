@@ -21,13 +21,7 @@ hts_prefix,description,exemption_code,category,source,effective_date
 2609,Tin ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
 2612,Uranium or thorium ores,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
 2844.40,Radioactive elements and isotopes,9903.01.32,critical_mineral,Annex II EO 14257,2025-09-08
-8541.10,Diodes (semiconductor devices),9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.21,Transistors with dissipation < 1W,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.29,Other transistors,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.30,Thyristors diacs and triacs,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.40,Photosensitive semiconductor devices,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.50,Other semiconductor devices,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
-8541.60,Mounted piezoelectric crystals,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+8541,Semiconductor devices (all subheadings),9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
 8542,Electronic integrated circuits,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
 3002,Human blood and animal blood vaccines,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
 3003,Medicaments not in dosage form,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
@@ -36,3 +30,19 @@ hts_prefix,description,exemption_code,category,source,effective_date
 4401,Fuel wood and wood chips,9903.01.32,lumber,Annex II EO 14257,2025-04-05
 4403,Wood in the rough,9903.01.32,lumber,Annex II EO 14257,2025-04-05
 4407,Wood sawn or chipped lengthwise,9903.01.32,lumber,Annex II EO 14257,2025-04-05
+3818.00,Chemical elements doped for electronics,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05
+2504.10,Natural graphite crystalline flakes,9903.01.32,critical_mineral,Annex II EO 14346 Addition,2025-09-08
+2602,Manganese ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-04-05
+2610,Chromium ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-04-05
+2611,Tungsten ores and concentrates,9903.01.32,critical_mineral,Annex II EO 14257,2025-04-05
+8001,Unwrought tin,9903.01.32,critical_mineral,Annex II EO 14257,2025-04-05
+8101,Tungsten (wolfram) and articles thereof,9903.01.32,critical_mineral,Annex II EO 14257,2025-04-05
+2801,"Fluorine, chlorine, bromine, iodine",9903.01.32,chemical,Annex II EO 14257,2025-04-05
+2804,"Hydrogen, rare gases, oxygen, nitrogen",9903.01.32,chemical,Annex II EO 14257,2025-04-05
+2934,Nucleic acids and their salts heterocyclic compounds,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+293499,Other heterocyclic compounds nucleic acid-based,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+2937,"Hormones, prostaglandins, thromboxanes",9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+2941,Antibiotics,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+2942,Other organic compounds,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+3001,Glands organs extracts for organo-therapeutic uses,9903.01.32,pharmaceutical,Annex II EO 14257,2025-04-05
+84733051,Parts of ADP machines printed circuit assemblies,9903.01.32,semiconductor,Annex II EO 14257,2025-04-05

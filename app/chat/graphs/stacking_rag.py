@@ -708,8 +708,18 @@ def build_entry_stacks_node(state: StackingState) -> dict:
 
                 # HTS IS on the 232 list - determine claim vs disclaim based on slice type
                 expected_slice = f"{material}_slice"
-                if slice_type == expected_slice:
-                    # This is the claim slice for this metal
+                article_type = inclusion_result.get("article_type", "content")
+
+                # v12.0: For primary/derivative articles when NO materials specified,
+                # 232 applies on FULL value per U.S. Note 16
+                # slice_type is "full" when no materials, "all" in some contexts
+                if article_type in ("primary", "derivative") and slice_type in ("all", "full"):
+                    # Full product value slice - auto-apply 232 claim
+                    action = "claim"
+                    chapter_99_code = inclusion_result.get("claim_code")
+                    duty_rate = inclusion_result.get("duty_rate", 0)
+                elif slice_type == expected_slice:
+                    # This is the claim slice for this metal (content article)
                     action = "claim"
                     # v7.0: Use HTS-specific claim_code from inclusion data
                     chapter_99_code = inclusion_result.get("claim_code")

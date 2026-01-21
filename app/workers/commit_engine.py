@@ -86,7 +86,7 @@ class CommitEngine:
         ch99 = candidate.new_chapter_99_code or ""
 
         # Section 301 codes
-        if ch99.startswith("9903.88") or ch99.startswith("9903.91"):
+        if ch99.startswith("9903.88") or ch99.startswith("9903.91") or ch99.startswith("9903.92"):
             return "section_301"
 
         # Section 232 codes
@@ -106,6 +106,23 @@ class CommitEngine:
         # Default to 301 if we have a 9903 code
         if ch99.startswith("9903"):
             return "section_301"
+
+        # Fallback: use the program field from LLM extraction
+        program = str(candidate.program or "").lower()
+        if "301" in program or program == "section_301":
+            return "section_301"
+        if "232" in program:
+            if "steel" in program:
+                return "section_232_steel"
+            if "aluminum" in program:
+                return "section_232_aluminum"
+            if "copper" in program:
+                return "section_232_copper"
+            return "section_232_steel"  # Default 232 to steel
+        if "ieepa" in program:
+            if "reciprocal" in program:
+                return "ieepa_reciprocal"
+            return "ieepa_fentanyl"
 
         return "unknown"
 
@@ -142,10 +159,11 @@ class CommitEngine:
 
         with db.session.begin_nested():
             # Find existing active row(s) for this HTS code
+            # Use with_for_update() to prevent race condition with concurrent commits
             existing = Section301Rate.query.filter(
                 Section301Rate.hts_8digit == hts_8digit,
                 Section301Rate.effective_end.is_(None)  # Currently active
-            ).all()
+            ).with_for_update().all()
 
             supersedes_id = None
             action = "INSERT"
@@ -245,10 +263,11 @@ class CommitEngine:
 
         with db.session.begin_nested():
             # First, find and close any existing active rates
+            # Use with_for_update() to prevent race condition with concurrent commits
             existing = Section301Rate.query.filter(
                 Section301Rate.hts_8digit == hts_8digit,
                 Section301Rate.effective_end.is_(None)
-            ).all()
+            ).with_for_update().all()
 
             first_effective = schedule[0].effective_start
             supersedes_id = None
@@ -379,7 +398,8 @@ class CommitEngine:
             else:
                 query = query.filter(Section232Rate.country_code.is_(None))
 
-            existing = query.all()
+            # Use with_for_update() to prevent race condition with concurrent commits
+            existing = query.with_for_update().all()
             supersedes_id = None
             action = "INSERT"
 
@@ -471,7 +491,8 @@ class CommitEngine:
             if country_code:
                 query = query.filter(Section232Rate.country_code == country_code)
 
-            existing = query.all()
+            # Use with_for_update() to prevent race condition with concurrent commits
+            existing = query.with_for_update().all()
             first_effective = schedule[0].effective_start
             supersedes_id = None
 
@@ -550,7 +571,8 @@ class CommitEngine:
             else:
                 query = query.filter(IeepaRate.country_code.is_(None))
 
-            existing = query.all()
+            # Use with_for_update() to prevent race condition with concurrent commits
+            existing = query.with_for_update().all()
             action = "INSERT"
 
             for old_rate in existing:
@@ -636,7 +658,8 @@ class CommitEngine:
             if country_code:
                 query = query.filter(IeepaRate.country_code == country_code)
 
-            existing = query.all()
+            # Use with_for_update() to prevent race condition with concurrent commits
+            existing = query.with_for_update().all()
             first_effective = schedule[0].effective_start
 
             for old_rate in existing:

@@ -28,24 +28,37 @@ logger = logging.getLogger(__name__)
 # LLM extraction prompt for tariff changes
 TARIFF_EXTRACTION_PROMPT = """You are an expert at extracting tariff rate changes from regulatory documents.
 
-Analyze the following text from a Federal Register or CBP document and extract any tariff changes.
+DOCUMENT TITLE: {title}
+
+Analyze the following text and extract any tariff changes.
 
 For each tariff change found, provide a JSON object with these fields:
 - hts_code: The 8 or 10 digit HTS code (e.g., "8544.42.90")
 - chapter_99_code: The Chapter 99 heading if mentioned (e.g., "9903.88.01")
 - rate: The duty rate as a decimal (e.g., 0.25 for 25%)
-- effective_date: The effective date in YYYY-MM-DD format
+- effective_date: The effective date in YYYY-MM-DD format - Look for:
+    * "effective [date]", "beginning [date]", "as of [date]"
+    * "effective upon publication" = use document publication date
+    * "effective 30 days after publication" = calculate from publication date
+    * If no date found, use null (do NOT guess)
 - description: Brief product description
-- program: The tariff program (section_301, section_232_steel, section_232_aluminum, ieepa_fentanyl, etc.)
-- evidence_quote: The exact text that supports this change (verbatim quote from the document)
+- program: The tariff program - REQUIRED field, determine from the DOCUMENT TITLE above:
+    * Title contains "Section 301" → use "section_301"
+    * Title contains "Section 232" + "steel" → use "section_232_steel"
+    * Title contains "Section 232" + "aluminum" → use "section_232_aluminum"
+    * Title contains "Section 232" (other) → use "section_232"
+    * Title contains "IEEPA" or "fentanyl" → use "ieepa_fentanyl"
+    * Title contains "Reciprocal" or "EU" or "Annex II" → use "ieepa_reciprocal"
+- evidence_quote: The exact text that supports this change
 
 Return a JSON array of changes. If no tariff changes are found, return an empty array [].
 
-IMPORTANT:
-- Only extract actual tariff rate changes, not general discussions
-- Include the exact quote from the document as evidence
+CRITICAL RULES:
+- The `program` field is REQUIRED - always determine it from the document title
+- ONLY extract HTS codes that are EXPLICITLY written in the text - do NOT guess or invent codes
+- If you cannot find a specific HTS code in the text, do NOT include it
 - Rates should be decimals (0.25 for 25%, 1.00 for 100%)
-- Only include changes with specific HTS codes and rates
+- If the document discusses tariffs generally but lists no specific HTS codes, return []
 
 TEXT TO ANALYZE:
 {text}
@@ -204,7 +217,8 @@ class ExtractionWorker:
         candidates = []
 
         try:
-            root = ET.fromstring(doc.raw_bytes)
+            # Use doc.content property (reads from storage_uri or legacy raw_bytes)
+            root = ET.fromstring(doc.content)
         except ET.ParseError:
             return []
 
@@ -427,8 +441,11 @@ class ExtractionWorker:
                     continue  # Skip very short chunks
 
                 try:
-                    # Format the prompt
-                    prompt = TARIFF_EXTRACTION_PROMPT.format(text=chunk.text[:8000])
+                    # Format the prompt with title for program identification
+                    prompt = TARIFF_EXTRACTION_PROMPT.format(
+                        title=doc.title or "Unknown",
+                        text=chunk.text[:8000]
+                    )
 
                     # Call LLM
                     response = llm.invoke(prompt)
@@ -555,6 +572,8 @@ class ExtractionWorker:
         if clean.startswith("99"):
             return False  # Chapter 99 codes
         if len(clean) < 6:
+            return False
+        if clean == "0" * len(clean):  # Reject all-zeros (hallucination)
             return False
         return True
 
