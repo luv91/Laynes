@@ -753,6 +753,11 @@ def get_rate_for_program(
 # Tool 0: Ensure Materials
 # ============================================================================
 
+# Materials that require user input for percentage/value (partial product)
+# Semiconductors and auto apply to FULL product - no user input needed
+MATERIALS_REQUIRING_USER_INPUT = {"copper", "steel", "aluminum"}
+
+
 @tool
 def ensure_materials(hts_code: str, product_description: str, known_materials: Optional[str] = None) -> str:
     """
@@ -760,6 +765,10 @@ def ensure_materials(hts_code: str, product_description: str, known_materials: O
 
     Call this early in the stacking process to identify what material
     information we need from the user (if any).
+
+    IMPORTANT: Only metals (copper, steel, aluminum) require user input for
+    material percentage. Other Section 232 materials like semiconductors and
+    auto parts apply to the FULL product value automatically.
 
     Args:
         hts_code: The 10-digit HTS code
@@ -788,8 +797,21 @@ def ensure_materials(hts_code: str, product_description: str, known_materials: O
                 "materials": known_materials or {}
             })
 
-        # Materials are needed - what do we know?
-        applicable_materials = [m.material for m in materials]
+        # All materials that apply to this HTS
+        all_applicable = [m.material for m in materials]
+
+        # Only metals require user input for percentage
+        # Semiconductors, auto, etc. apply to full product automatically
+        applicable_materials = [m for m in all_applicable if m in MATERIALS_REQUIRING_USER_INPUT]
+
+        # If no metals apply, no user input needed
+        if not applicable_materials:
+            return json.dumps({
+                "materials_needed": False,
+                "reason": f"Section 232 materials ({', '.join(all_applicable)}) apply to full product - no user input needed",
+                "materials": {},
+                "full_product_materials": all_applicable
+            })
 
         if known_materials:
             try:
