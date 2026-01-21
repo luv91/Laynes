@@ -272,6 +272,25 @@ def populate_tariff_programs(app):
             "expiration_date": None,
             "disclaim_behavior": "omit",  # v7.0: Omit entirely when not claimed
         },
+        # Section 232 - Auto Parts (applies to ALL countries)
+        # Proclamation 10908 (90 FR 14705) - effective May 3, 2025
+        # v8.0: 25% tariff, with USMCA exemption option
+        {
+            "program_id": "section_232_auto",
+            "program_name": "Section 232 Auto Parts",
+            "country": "ALL",
+            "check_type": "hts_lookup",
+            "condition_handler": "handle_material_composition",
+            "condition_param": "auto",
+            "inclusion_table": "section_232_materials",
+            "exclusion_table": None,
+            "filing_sequence": 7,  # Display order: after Aluminum
+            "calculation_sequence": 6,  # Calc order: before IEEPA Reciprocal
+            "source_document": "Proclamation_10908_90FR14705_AutoParts.pdf",
+            "effective_date": date(2025, 5, 3),
+            "expiration_date": None,
+            "disclaim_behavior": "omit",  # Omit when not claimed (USMCA-eligible)
+        },
         # IEEPA Reciprocal - depends on Section 232 claims for unstacking
         # filing_sequence=3 (display after Fentanyl)
         # calculation_sequence=6 (calculate AFTER 232 to know remaining_value)
@@ -664,6 +683,12 @@ def populate_section_232_from_csv(app):
         with open(csv_path, 'r') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                # Skip comment lines and empty rows
+                if not row.get('hts_code') or row['hts_code'].startswith('#'):
+                    continue
+                if not row.get('duty_rate'):
+                    continue
+
                 # Convert HTS code to 8-digit format (remove dots, pad if needed)
                 hts_code = row['hts_code'].replace('.', '')
                 # Use first 8 digits for lookup (standard 232 matching)
@@ -674,6 +699,7 @@ def populate_section_232_from_csv(app):
                     'copper': 'CSMS_65794272_Copper_Aug2025.pdf',
                     'steel': 'CSMS_65936570_Steel_Aug2025.pdf',
                     'aluminum': 'CSMS_65936615_Aluminum_Aug2025.pdf',
+                    'auto': 'Proclamation_10908_90FR14705_AutoParts.pdf',
                 }
 
                 # v11.0: Read article_type from CSV (data-driven)
@@ -1024,6 +1050,20 @@ def populate_program_codes(app):
         {"program_id": "section_232_aluminum", "action": "disclaim", "variant": None, "slice_type": "full",
          "chapter_99_code": "9903.85.09", "duty_rate": 0.0, "applies_to": "full",
          "source_doc": "CSMS_65936615_Aluminum_Aug2025.pdf"},
+
+        # ===================================================================
+        # Section 232 Auto Parts - 25% (Proclamation 10908, May 3, 2025)
+        # Claim on auto_slice, Disclaim for USMCA-eligible parts
+        # ===================================================================
+        {"program_id": "section_232_auto", "action": "claim", "variant": None, "slice_type": "auto_slice",
+         "chapter_99_code": "9903.94.05", "duty_rate": 0.25, "applies_to": "partial",
+         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
+        {"program_id": "section_232_auto", "action": "disclaim", "variant": "usmca_eligible", "slice_type": "auto_slice",
+         "chapter_99_code": "9903.94.06", "duty_rate": 0.0, "applies_to": "partial",
+         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
+        {"program_id": "section_232_auto", "action": "disclaim", "variant": None, "slice_type": "full",
+         "chapter_99_code": "9903.94.06", "duty_rate": 0.0, "applies_to": "full",
+         "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf"},
     ]
 
     with app.app_context():
@@ -1076,6 +1116,7 @@ def populate_duty_rules(app):
         {"program_id": "section_232_copper", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "CSMS_65794272_Copper_July2025.pdf", "content_key": "copper", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
         {"program_id": "section_232_steel", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Steel_Proclamation_10895.pdf", "content_key": "steel", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
         {"program_id": "section_232_aluminum", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "232_Aluminum_Proclamation_10896.pdf", "content_key": "aluminum", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
+        {"program_id": "section_232_auto", "calculation_type": "on_portion", "base_on": "content_value", "compounds_with": None, "source_doc": "Proclamation_10908_90FR14705_AutoParts.pdf", "content_key": "auto", "fallback_base_on": "full_value", "base_effect": "subtract_from_remaining"},
     ]
 
     with app.app_context():
@@ -1463,6 +1504,20 @@ def populate_program_rates(app):
         },
 
         # ===================================================================
+        # Section 232 Auto Parts - 25% (Proclamation 10908, May 3, 2025)
+        # USMCA-eligible parts can be exempt (filed with 9903.94.06)
+        # ===================================================================
+        {
+            "program_id": "section_232_auto",
+            "group_id": "default",
+            "rate": 0.25,
+            "rate_type": "fixed",
+            "rate_formula": None,
+            "effective_date": date(2025, 5, 3),
+            "expiration_date": None,
+        },
+
+        # ===================================================================
         # IEEPA Reciprocal
         # ===================================================================
         # Default: 10% flat
@@ -1744,6 +1799,10 @@ def populate_section_232_temporal(app, seed_if_empty=False):
         {'material': 'copper', 'rate': Decimal('0.50'),
          'start': date(2025, 3, 12), 'end': None,
          'source_doc': 'Proclamation 10896 - Section 232 Copper Investigation'},
+        # Auto Parts - Proclamation 10908 (May 3, 2025)
+        {'material': 'auto', 'rate': Decimal('0.25'),
+         'start': date(2025, 5, 3), 'end': None,
+         'source_doc': 'Proclamation 10908 (90 FR 14705) - Section 232 Auto Parts'},
     ]
 
     with app.app_context():

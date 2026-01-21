@@ -954,8 +954,42 @@ def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = No
                 "error": f"Unknown program: {program_id}"
             })
 
-        # Programs with check_type="always" don't need inclusion lookup
+        # Programs with check_type="always" still need rate lookup from ieepa_rates
         if program.check_type == "always":
+            # For IEEPA programs, lookup the rate from ieepa_rates table
+            if program_id in ("ieepa_fentanyl", "ieepa_reciprocal"):
+                IeepaRate = models.get("IeepaRate")
+                if IeepaRate:
+                    from datetime import date as date_type, datetime
+                    if as_of_date:
+                        try:
+                            lookup_date = datetime.strptime(as_of_date, "%Y-%m-%d").date()
+                        except (ValueError, TypeError):
+                            lookup_date = date_type.today()
+                    else:
+                        lookup_date = date_type.today()
+
+                    program_type = "fentanyl" if program_id == "ieepa_fentanyl" else "reciprocal"
+
+                    # Query ieepa_rates for this program type (active rate as of lookup_date)
+                    rate = IeepaRate.query.filter(
+                        IeepaRate.program_type == program_type,
+                        IeepaRate.effective_start <= lookup_date,
+                        (IeepaRate.effective_end.is_(None) | (IeepaRate.effective_end > lookup_date))
+                    ).order_by(IeepaRate.effective_start.desc()).first()
+
+                    if rate:
+                        return json.dumps({
+                            "included": True,
+                            "program_id": program_id,
+                            "chapter_99_code": rate.chapter_99_code,
+                            "duty_rate": float(rate.duty_rate),
+                            "check_type": "always",
+                            "variant": rate.variant,
+                            "effective_start": rate.effective_start.isoformat() if rate.effective_start else None
+                        })
+
+            # Fallback for other "always" programs or if no rate found
             return json.dumps({
                 "included": True,
                 "program_id": program_id,
