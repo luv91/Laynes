@@ -146,7 +146,10 @@ def get_article_type(hts_code: str, material: str) -> str:
     heading = hts_code.replace('.', '')[:4]
 
     if material == 'copper':
-        return 'primary'  # All copper is primary per Proclamation
+        if chapter == '74':
+            return 'primary'  # Chapter 74 copper articles
+        else:
+            return 'content'  # Copper as component in other products
 
     elif material == 'steel':
         if chapter == '72':
