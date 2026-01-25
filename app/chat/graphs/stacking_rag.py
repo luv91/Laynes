@@ -600,10 +600,10 @@ def build_entry_stacks_node(state: StackingState) -> dict:
             duty_rate = 0
 
             if program_id == "section_301":
-                # Section 301 applies to all slices
+                # Section 301 is an ENUMERATED program - only applies if HTS is on the list
                 # v7.0: Get HTS-specific code from section_301_inclusions
                 # v11.0: Use import_date for temporal lookup (exclusion precedence)
-                action = "apply"
+                # v19.0: NO FALLBACK - if HTS not in section_301_rates, 301 does not apply
                 import_date = state.get("import_date")
                 inclusion_result = json.loads(TOOL_MAP["check_program_inclusion"].invoke({
                     "program_id": program_id,
@@ -611,19 +611,20 @@ def build_entry_stacks_node(state: StackingState) -> dict:
                     "as_of_date": import_date
                 }))
                 if inclusion_result.get("included"):
-                    # Use HTS-specific code from inclusion table
+                    # HTS is on Section 301 list - apply the tariff
+                    action = "apply"
                     chapter_99_code = inclusion_result.get("chapter_99_code")
-                    duty_rate = inclusion_result.get("duty_rate", 0.25)
+                    # Require duty_rate to be present - don't default to avoid silent errors
+                    if inclusion_result.get("duty_rate") is not None:
+                        duty_rate = inclusion_result.get("duty_rate")
+                    else:
+                        # Data integrity issue - log and skip
+                        logger.warning(f"Section 301 inclusion for {hts_code} missing duty_rate")
+                        action = "skip"
                 else:
-                    # Fallback to program_codes table
-                    output = json.loads(TOOL_MAP["get_program_output"].invoke({
-                        "program_id": program_id,
-                        "action": "apply",
-                        "slice_type": "all"
-                    }))
-                    if output.get("found"):
-                        chapter_99_code = output.get("chapter_99_code")
-                        duty_rate = output.get("duty_rate", 0.25)
+                    # v19.0 FIX: HTS is NOT on Section 301 list - do NOT apply
+                    # No fallback to program_codes for enumerated programs
+                    action = "skip"
 
             elif program_id == "ieepa_fentanyl":
                 # IEEPA Fentanyl applies to all slices
