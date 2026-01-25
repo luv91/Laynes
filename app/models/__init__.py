@@ -9,6 +9,13 @@ These models support the document processing pipeline:
 - RegulatoryRun: Polling cycle tracking
 - TariffAuditLog: Change audit trail
 - CandidateChangeRecord: Pending review items
+
+Section 301 Trade Compliance Models (v1.0):
+- SourceVersion: Audit backbone for data sources
+- TariffMeasure: Temporal tariff rates (SCD Type 2)
+- HtsCodeHistory: HTS code validity tracking
+- ExclusionClaim: Product exclusions with verification
+- Section301IngestionRun: Ingestion pipeline tracking
 """
 
 from app.models.document_store import OfficialDocument, DocumentChunk
@@ -21,8 +28,22 @@ from app.models.regulatory_run import (
     TariffAuditLog,
     CandidateChangeRecord,
 )
+from app.models.section301 import (
+    SourceVersion,
+    TariffMeasure,
+    HtsCodeHistory,
+    ExclusionClaim,
+    Section301IngestionRun,
+    SourceType,
+    Publisher,
+    RateStatus,
+    ConfidenceStatus,
+    HtsValidationStatus,
+    HtsType,
+)
 
 __all__ = [
+    # Document Pipeline
     'OfficialDocument',
     'DocumentChunk',
     'EvidencePacket',
@@ -32,4 +53,17 @@ __all__ = [
     'RegulatoryRunChange',
     'TariffAuditLog',
     'CandidateChangeRecord',
+    # Section 301 Models
+    'SourceVersion',
+    'TariffMeasure',
+    'HtsCodeHistory',
+    'ExclusionClaim',
+    'Section301IngestionRun',
+    # Section 301 Enums
+    'SourceType',
+    'Publisher',
+    'RateStatus',
+    'ConfidenceStatus',
+    'HtsValidationStatus',
+    'HtsType',
 ]

@@ -7,6 +7,7 @@ Note: Imports are lazy to avoid circular import issues.
 Use explicit imports from submodules when needed:
     from app.services.freshness import get_freshness_service
     from app.services.confidence_service import get_confidence_service
+    from app.services.section301_engine import evaluate_section_301
 """
 
 
@@ -38,6 +39,22 @@ def __getattr__(name):
             'ProgramConfidence': ProgramConfidence,
             'StackingConfidenceResult': StackingConfidenceResult,
             'get_confidence_service': get_confidence_service,
+        }
+        return mapping[name]
+
+    # Section 301 Trade Compliance Engine
+    if name in ('Section301Engine', 'Section301Result', 'evaluate_section_301',
+                'get_section_301_rate', 'get_section_301_engine'):
+        from app.services.section301_engine import (
+            Section301Engine, Section301Result, evaluate_section_301,
+            get_section_301_rate, get_section_301_engine
+        )
+        mapping = {
+            'Section301Engine': Section301Engine,
+            'Section301Result': Section301Result,
+            'evaluate_section_301': evaluate_section_301,
+            'get_section_301_rate': get_section_301_rate,
+            'get_section_301_engine': get_section_301_engine,
         }
         return mapping[name]
 
