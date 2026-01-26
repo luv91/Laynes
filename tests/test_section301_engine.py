@@ -850,3 +850,221 @@ class TestNote31GoldenCases:
                         f"{expected_rate*100}%, but HTS {m.scope_hts_value} has "
                         f"{m.additional_rate*100}%"
                     )
+
+
+# =============================================================================
+# Test: Note 31 Database Invariants (v21.0)
+# =============================================================================
+
+class TestNote31InvariantDatabase:
+    """
+    Database invariant tests for U.S. Note 31 subdivision ↔ rate mapping.
+
+    v21.0 (Jan 2026): Added after fixing 348 rows bug.
+
+    These tests verify the ACTUAL section_301_rates table data, not mock data.
+    They ensure no violations of the Note 31 legal requirements:
+    - 9903.91.01 (subdivision b) MUST have rate = 25%
+    - 9903.91.02 (subdivision c) MUST have rate = 50%
+    - 9903.91.03 (subdivision d) MUST have rate = 100%
+
+    IMPORTANT: These tests require actual database data to be meaningful.
+    They should be run against the production/staging database, not just
+    in-memory test fixtures.
+    """
+
+    @pytest.fixture
+    def app_with_data(self):
+        """
+        Create Flask app connected to actual database (SQLite or PostgreSQL).
+
+        This fixture connects to the real database to test actual data integrity.
+        Falls back to in-memory if no database is available.
+        """
+        from flask import Flask
+        from app.web.db import db
+        import os
+
+        app = Flask(__name__)
+
+        # Try to use actual database if available
+        db_uri = os.environ.get('SQLALCHEMY_DATABASE_URI')
+        if not db_uri:
+            # Try SQLite file if available
+            sqlite_paths = ['instance/sqlite.db', 'instance/lanes.db']
+            for path in sqlite_paths:
+                if os.path.exists(path):
+                    db_uri = f'sqlite:///{path}'
+                    break
+
+        if not db_uri:
+            # Fall back to in-memory (tests will be skipped if no data)
+            db_uri = 'sqlite:///:memory:'
+
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        app.config['TESTING'] = True
+
+        db.init_app(app)
+
+        with app.app_context():
+            yield app
+
+    def test_no_9903_91_03_at_25_percent(self, app_with_data):
+        """
+        DATABASE INVARIANT: 9903.91.03 should NEVER have 25% rate.
+
+        9903.91.03 is subdivision (d) which MUST be 100%.
+        If any row has 9903.91.03 @ 25%, it's a data entry error.
+
+        v21.0: This catches the bug where 348 rows had wrong mapping.
+        """
+        from app.web.db.models.tariff_tables import Section301Rate
+
+        with app_with_data.app_context():
+            # Check if table exists and has data
+            try:
+                total = Section301Rate.query.count()
+            except Exception:
+                pytest.skip("section_301_rates table not available")
+
+            if total == 0:
+                pytest.skip("No data in section_301_rates table")
+
+            # Find violations: 9903.91.03 @ 25%
+            violations = Section301Rate.query.filter(
+                Section301Rate.chapter_99_code == '9903.91.03',
+                Section301Rate.duty_rate >= 0.24,  # Use range for float
+                Section301Rate.duty_rate <= 0.26
+            ).all()
+
+            assert len(violations) == 0, (
+                f"DATABASE INVARIANT VIOLATION: Found {len(violations)} rows with "
+                f"9903.91.03 @ 25% (should be 0). This violates U.S. Note 31. "
+                f"9903.91.03 is subdivision (d) which must be 100%. "
+                f"Sample HTS codes: {[v.hts_8digit for v in violations[:5]]}"
+            )
+
+    def test_note31_heading_rate_consistency(self, app_with_data):
+        """
+        DATABASE INVARIANT: All Note 31 headings must have correct rates.
+
+        U.S. Note 31 Legal Requirements:
+        - 9903.91.01 (subdivision b) = 25%
+        - 9903.91.02 (subdivision c) = 50%
+        - 9903.91.03 (subdivision d) = 100%
+
+        Any deviation is a compliance failure.
+        """
+        from app.web.db.models.tariff_tables import Section301Rate
+
+        NOTE_31_INVARIANTS = {
+            "9903.91.01": 0.25,  # subdivision (b)
+            "9903.91.02": 0.50,  # subdivision (c)
+            "9903.91.03": 1.00,  # subdivision (d)
+        }
+        TOLERANCE = 0.01  # 1% tolerance for float comparison
+
+        with app_with_data.app_context():
+            # Check if table exists and has data
+            try:
+                total = Section301Rate.query.count()
+            except Exception:
+                pytest.skip("section_301_rates table not available")
+
+            if total == 0:
+                pytest.skip("No data in section_301_rates table")
+
+            all_violations = []
+
+            for ch99, expected_rate in NOTE_31_INVARIANTS.items():
+                # Query all rows with this Chapter 99 heading
+                rows = Section301Rate.query.filter(
+                    Section301Rate.chapter_99_code == ch99
+                ).all()
+
+                # Find violations (rate doesn't match expected)
+                violations = [
+                    r for r in rows
+                    if r.duty_rate is not None
+                    and abs(float(r.duty_rate) - expected_rate) > TOLERANCE
+                ]
+
+                if violations:
+                    all_violations.append({
+                        'ch99': ch99,
+                        'expected': expected_rate,
+                        'count': len(violations),
+                        'sample': violations[:3]
+                    })
+
+            if all_violations:
+                msg_parts = ["DATABASE INVARIANT VIOLATIONS:"]
+                for v in all_violations:
+                    msg_parts.append(
+                        f"  - {v['ch99']}: {v['count']} rows should be {v['expected']*100}% "
+                        f"but have different rates. Sample HTS: "
+                        f"{[r.hts_8digit for r in v['sample']]}"
+                    )
+                pytest.fail("\n".join(msg_parts))
+
+    def test_note31_rate_distribution_summary(self, app_with_data):
+        """
+        DIAGNOSTIC TEST: Show current Note 31 rate distribution.
+
+        This test doesn't assert - it provides visibility into the data.
+        Useful for debugging and verifying fixes.
+        """
+        from app.web.db.models.tariff_tables import Section301Rate
+        from sqlalchemy import func
+
+        with app_with_data.app_context():
+            try:
+                from app.web.db import db
+
+                # Get distribution of Note 31 headings and rates
+                distribution = db.session.query(
+                    Section301Rate.chapter_99_code,
+                    Section301Rate.duty_rate,
+                    func.count(Section301Rate.id).label('count')
+                ).filter(
+                    Section301Rate.chapter_99_code.like('9903.91.%')
+                ).group_by(
+                    Section301Rate.chapter_99_code,
+                    Section301Rate.duty_rate
+                ).order_by(
+                    Section301Rate.chapter_99_code,
+                    Section301Rate.duty_rate
+                ).all()
+
+                if not distribution:
+                    pytest.skip("No Note 31 data in section_301_rates table")
+
+                # Print distribution for debugging (visible with pytest -v)
+                print("\n\nNote 31 Rate Distribution:")
+                print("-" * 50)
+                for ch99, rate, count in distribution:
+                    rate_pct = f"{float(rate)*100:.1f}%" if rate else "NULL"
+                    print(f"  {ch99} @ {rate_pct}: {count} rows")
+                print("-" * 50)
+
+                # Verify expected distribution after v21.0 fix
+                # Expected: 9903.91.01 @ 25%, 9903.91.02 @ 50%, 9903.91.03 @ 100%
+                expected = {
+                    ('9903.91.01', 0.25): True,
+                    ('9903.91.02', 0.50): True,
+                    ('9903.91.03', 1.00): True,
+                }
+
+                # Check no unexpected combinations
+                for ch99, rate, count in distribution:
+                    rate_val = float(rate) if rate else 0
+                    # Check for known bad combinations
+                    if ch99 == '9903.91.03' and abs(rate_val - 0.25) < 0.01:
+                        pytest.fail(
+                            f"Found {count} rows with 9903.91.03 @ 25% - "
+                            f"this violates U.S. Note 31 (subdivision d = 100%)"
+                        )
+
+            except Exception as e:
+                pytest.skip(f"Could not query database: {e}")

@@ -2177,14 +2177,14 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 26011100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 26011200,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 26012000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-26020000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26020000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 26040000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-26050000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-26060000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26050000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26060000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 26070000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-26080000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-26100000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-26110060,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26080000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26100000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+26110060,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 26121000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 26140030,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 26140060,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -2378,7 +2378,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 28256000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28259010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28259015,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-28259030,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28259030,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 28259075,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28259090,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28261200,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -2492,7 +2492,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 28415091,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28416100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28416900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-28418000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28418000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 28419010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28419020,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28419030,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -2511,10 +2511,10 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 28441020,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28441050,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28442000,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-28444100,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-28444200,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-28444300,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-28444400,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28444100,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28444200,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28444300,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28444400,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 28445000,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 28451000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28459000,9903.88.01,0.25,2018-07-06,,list_1,FR-2018-06-20_2018-13248_List1.pdf,impose
@@ -2522,7 +2522,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 28491000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28499010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28499020,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-28499030,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+28499030,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 28499050,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28500005,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 28500007,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -7120,12 +7120,12 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 72024910,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72024950,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72025000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-72026000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+72026000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 72028000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72029100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72029200,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-72029340,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-72029380,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+72029340,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+72029380,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 72029910,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72029920,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72031000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -7141,599 +7141,599 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 72052100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72052900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72061000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72061000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72061000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72069000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72069000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72069000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72071100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72071100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72071100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72071200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72071200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72071200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72071900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72071900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72071900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72072000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72072000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72072000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72081015,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72081015,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72081015,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72081030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72081030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72081030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72081060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72081060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72081060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72082530,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72082530,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72082530,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72082560,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72082560,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72082560,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72082600,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72082600,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72082600,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72082700,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72082700,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72082700,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72083600,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72083600,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72083600,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72083700,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72083700,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72083700,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72083800,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72083800,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72083800,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72083900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72083900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72083900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72084030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72084030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72084030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72084060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72084060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72084060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72085100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72085100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72085100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72085200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72085200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72085200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72085300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72085300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72085300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72085400,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72085400,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72085400,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72089000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72089000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72089000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091500,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091500,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091500,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091600,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091600,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091600,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091700,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091700,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091700,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091815,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091815,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091815,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091825,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091825,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091825,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72091860,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72091860,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72091860,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72092500,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72092500,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72092500,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72092600,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72092600,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72092600,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72092700,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72092700,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72092700,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72092800,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72092800,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72092800,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72099000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72099000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72099000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72101100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72101100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72101100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72101200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72101200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
-72102000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72101200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72102000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72103000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72103000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72103000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72104100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72104100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72104100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72104900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72104900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72104900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72105000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72105000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72105000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72106100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72106100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72106100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72106900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72106900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72106900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72107030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72107030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72107030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72107060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72107060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72107060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72109010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72109010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72109010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72109060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72109060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72109060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72109090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72109090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72109090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111400,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111400,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111400,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111915,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111915,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111915,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111920,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111920,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111920,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111930,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111930,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111930,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111945,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111945,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111945,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111960,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111960,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111960,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72111975,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72111975,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72111975,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112315,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112315,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112315,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112320,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112320,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112320,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112330,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112330,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112330,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112345,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112345,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112345,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112360,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112360,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112360,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112920,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112920,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112920,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112945,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112945,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112945,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72112960,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72112960,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72112960,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72119000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72119000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72119000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72121000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72121000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72121000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72122000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72122000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72122000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72123010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72123010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72123010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72123030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72123030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72123030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72123050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72123050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72123050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72124010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72124010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72124010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72124050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72124050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72124050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72125000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72125000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72125000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72126000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72126000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72126000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72131000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72131000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72131000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72132000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72132000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72132000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72139130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72139130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72139130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72139145,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72139145,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72139145,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72139160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72139160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72139160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72139900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72139900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72139900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72142000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72142000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72142000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72143000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72143000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72143000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72149100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72149100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72149100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72149900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72149900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72149900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72151000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72151000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72151000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72155000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72155000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72155000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72159010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72159010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
-72159030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72159010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72159030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72159050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72159050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72159050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72161000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72161000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72161000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72162100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72162100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72162100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72162200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72162200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72162200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72163100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72163100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72163100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72163200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72163200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72163200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72163300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72163300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72163300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72164000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72164000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72164000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72165000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72165000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72165000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72166100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72166900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72169100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 72169900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72169900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72169900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171020,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171020,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171020,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171040,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72171050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72171090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72171090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72171090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72172015,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72172015,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72172015,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72172030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72172030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72172030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72172045,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72172045,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72172045,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72172060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72172060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72172060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72172075,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72172075,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72172075,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72173015,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72173015,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72173015,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72173030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72173030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72173030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72173045,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72173060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72173060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72173060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72173075,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72173075,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72173075,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72179010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72179010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72179010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72179050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72179050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72179050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72181000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72181000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72181000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72189100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72189100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72189100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72189900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72189900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72189900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72191100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72191100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72191100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72191200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72191200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72191200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72191300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72191300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72191300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72191400,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72191400,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72191400,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72192100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72192100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72192100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72192200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72192200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72192200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72192300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72192300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72192300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72192400,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72192400,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72192400,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72193100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72193100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72193100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72193200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72193200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72193200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72193300,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72193300,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72193300,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72193400,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72193400,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72193400,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72193500,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72193500,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72193500,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72199000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72199000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72199000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72201100,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72201210,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72201210,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72201210,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72201250,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72201250,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72201250,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72202010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72202010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72202010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72202060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72202060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72202060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72202070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72202070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72202070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72202080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72202080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72202080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72202090,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72209000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72209000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72209000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72210000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72210000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72210000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72221100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72221100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72221100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72221900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72221900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72221900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72222000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72222000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72222000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72223000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72223000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72223000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72224030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72224030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72224030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72224060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72224060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72224060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72230010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72230010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72230010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72230050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72230050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72230050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72230090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72230090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72230090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72241000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72241000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72241000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72249000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72249000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72249000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72251100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72251100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72251100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72251900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72251900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72251900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72253011,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72253011,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72253011,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72253030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72253030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72253030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72253051,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72253051,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72253051,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72253070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72253070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72253070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72254011,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72254011,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72254011,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72254030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72254030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72254030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72254051,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72254051,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72254051,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72254070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72254070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72254070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72255011,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72255011,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72255011,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72255060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72255060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72255060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72255070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72255070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72255070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72255080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72255080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72255080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72259100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72259100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72259100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72259200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72259200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72259200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72259900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72259900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72259900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72261110,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72261110,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72261110,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72261190,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72261190,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72261190,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72261910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72261910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72261910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72261990,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72261990,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72261990,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72262000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72262000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72262000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269105,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269105,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269105,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269115,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269115,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269115,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269125,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269125,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269125,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269150,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269150,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269150,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269170,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269170,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269170,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269180,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269180,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269180,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269210,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269210,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269210,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269230,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269230,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269230,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269250,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269250,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269250,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269270,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269270,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269270,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269280,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269280,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269280,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72269901,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72269901,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72269901,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72271000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72271000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72271000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72272000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72272000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72272000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72279010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72279010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72279010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72279020,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72279020,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72279020,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72279060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72279060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72279060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72281000,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72282010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72282010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72282010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72282050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72282050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72282050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72283020,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72283040,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72283040,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72283040,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72283060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72283060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72283060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72283080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72283080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72283080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72284000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72284000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72284000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72285010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72285010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72285010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72285050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72285050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72285050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72286010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72286010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72286010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72286060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72286060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72286060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72286080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72286080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72286080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72287030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72287030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72287030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72287060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72287060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72287060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72288000,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72292000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72292000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72292000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72299005,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 72299010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72299010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72299010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72299050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72299050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72299050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 72299090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-72299090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+72299090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73011000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73011000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73011000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73012010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 73012050,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 73021010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73021010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73021010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73021050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73021050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73021050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73023000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-73024000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73024000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73029010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73029010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73029010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73029090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73029090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73029090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73030000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 73041100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73041100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73041100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73041910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73041910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73041910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73041950,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73041950,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73041950,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042200,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042200,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
-73042330,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042200,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042330,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042360,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042360,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042360,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042430,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042430,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042430,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042440,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042440,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042440,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042460,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042460,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042460,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042920,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042920,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042920,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042931,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042931,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042931,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042941,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042941,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042941,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042950,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042950,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042950,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73042961,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73042961,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73042961,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73043130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73043130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73043130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73043160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73043160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73043160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73043900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73043900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73043900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73044130,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 73044160,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 73044900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73044900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73044900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045110,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045110,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045110,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045150,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045150,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045150,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045920,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045920,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045920,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045960,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045960,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045960,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73045980,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73045980,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73045980,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73049010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73049010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73049010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73049030,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 73049050,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 73049070,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73049070,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73049070,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051110,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051110,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051110,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051150,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051150,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051150,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051210,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051210,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051210,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051250,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051250,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051250,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73051950,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73051950,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73051950,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73052020,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73052020,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73052020,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73052040,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73052040,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73052040,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73052060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73052060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73052060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73052080,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73052080,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73052080,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73053120,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73053120,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73053120,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73053140,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73053140,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73053140,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73053160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73053160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73053160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73053910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73053910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73053910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73053950,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73053950,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73053950,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73059010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73059010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73059010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73059050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73059050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73059050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73061100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73061100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73061100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73061910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73061910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73061910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73061951,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73061951,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73061951,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062140,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062140,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062140,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062180,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062180,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062180,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062920,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062920,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062920,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062931,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062931,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062931,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062941,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062941,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062941,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062960,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062960,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062960,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73062981,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73062981,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73062981,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73063010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73063010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73063010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73063030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73063030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73063030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73063050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73063050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73063050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73064010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73064010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73064010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73064050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73064050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73064050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73065010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73065010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73065010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73065030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73065030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73065030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73065050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73065050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73065050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066110,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066110,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066110,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066150,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066150,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066150,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066170,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066170,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066170,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066930,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066930,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066930,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73066950,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 73066970,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73066970,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73066970,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73069010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73069010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73069010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73069050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-73069050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+73069050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 73071100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 73071930,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 73071990,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -8011,75 +8011,75 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 75089010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 75089050,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 76011030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76011030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76011030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76011060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76011060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76011060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76012030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76012030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76012030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76012060,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76012060,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76012060,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76012090,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76012090,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76012090,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76020000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 76031000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 76032000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 76041010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76041010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76041010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76041030,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76041030,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76041030,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76041050,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76041050,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76041050,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76042100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76042100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76042100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76042910,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76042910,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76042910,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76042930,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76042930,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76042930,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76042950,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76042950,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76042950,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76051100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76051100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76051100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76051900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76051900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76051900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76052100,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76052100,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76052100,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76052900,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76052900,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76052900,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76061130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76061130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76061130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76061160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76061160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76061160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76061230,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76061230,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76061230,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76061260,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76061260,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76061260,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76069130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76069130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76069130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76069160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76069160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76069160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76069230,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76069230,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76069230,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76069260,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76069260,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76069260,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76071130,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76071130,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76071130,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76071160,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76071160,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76071160,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76071190,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76071190,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76071190,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76071910,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 76071930,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 76071960,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76071960,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76071960,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76072010,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76072010,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76072010,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76072050,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 76081000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76081000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76081000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76082000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76082000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76082000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76090000,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-76090000,9903.91.03,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
+76090000,9903.91.01,0.25,2024-09-27,,Steel and Aluminum Products,2024-21217,impose
 76101000,9903.88.15,0.075,2020-02-14,,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
 76109000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 76110000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -8117,10 +8117,10 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 78060003,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 78060005,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 78060080,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-79011100,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-79011210,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-79011250,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-79012000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+79011100,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+79011210,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+79011250,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+79012000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 79031000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 79039030,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 79039060,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -8128,14 +8128,14 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 79050000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 79070020,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 79070060,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-80011000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
-80012000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+80011000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+80012000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 80070010,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 80070050,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-81011000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+81011000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 81019600,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81029600,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-81032000,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+81032000,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 81043000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81049000,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81052030,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -8156,7 +8156,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 81121200,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81121300,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81121900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-81122100,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+81122100,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 81122900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81125100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81125200,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -8164,7 +8164,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 81129206,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81129210,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81129220,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
-81129230,9903.91.03,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
+81129230,9903.91.01,0.25,2024-09-27,,Other Critical Minerals,2024-21217,impose
 81129240,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81129250,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 81129265,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
@@ -9280,7 +9280,7 @@ hts_8digit,chapter_99_code,duty_rate,effective_start,effective_end,list_name,sou
 85078081,9903.88.01,0.25,2018-07-06,,list_1,FR-2018-06-20_2018-13248_List1.pdf,impose
 85078081,9903.88.02,0.25,2018-08-23,,list_2,FR-2018-08-16_2018-17709_List2.pdf,impose
 85079040,9903.88.15,0.075,2020-02-14,2024-09-26,list_4A,FR-2019-08-20_2019-17865_List4A_4B_notice.pdf,impose
-85079040,9903.91.03,0.25,2024-09-27,,Battery Parts (Non-lithium-ion Batteries),2024-21217,impose
+85079040,9903.91.01,0.25,2024-09-27,,Battery Parts (Non-lithium-ion Batteries),2024-21217,impose
 85079080,9903.88.01,0.25,2018-07-06,,list_1,FR-2018-06-20_2018-13248_List1.pdf,impose
 85081100,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose
 85081900,9903.88.03,0.25,2019-05-10,,list_3,FR-2018-09-21_2018-20610_List3_initial.pdf + FR-2018-09-28_2018-21303_List3_conforming_amendment.pdf,impose

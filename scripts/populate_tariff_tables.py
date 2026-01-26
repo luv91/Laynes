@@ -1601,18 +1601,36 @@ def populate_section_301_temporal(app, seed_if_empty=False):
                 chapter_99_code = row['chapter_99_code']
                 duty_rate = float(row.get('duty_rate') or row.get('rate', 0.25))
 
-                # v20.0: Validate Note 31 heading ↔ rate invariants
-                # Note: Warn but don't fail for historical data inconsistencies
-                # Future ingestions should use strict validation
+                # v21.0: STRICT NEW ONLY validation for Note 31 headings
+                # - Block NEW violations immediately (fail ingestion)
+                # - Log LEGACY violations for cleanup (allow but report)
+                source_doc = row.get('source') or row.get('source_pdf', 'USTR_301_Notice.pdf')
                 if chapter_99_code in NOTE_31_INVARIANTS:
                     expected_rate = NOTE_31_INVARIANTS[chapter_99_code]
-                    if abs(duty_rate - expected_rate) > 0.001:
-                        import logging
-                        logging.warning(
-                            f"Note 31 inconsistency: {chapter_99_code} expected "
-                            f"{expected_rate*100}%, got {duty_rate*100}% for HTS {hts_8digit}. "
-                            f"Source: {row.get('source') or row.get('source_pdf', 'unknown')}"
-                        )
+                    if abs(duty_rate - expected_rate) > 1e-6:  # Use tolerance
+                        # Check if this EXACT row already exists in database (legacy)
+                        existing = Section301Rate.query.filter_by(
+                            hts_8digit=hts_8digit,
+                            chapter_99_code=chapter_99_code,
+                            effective_start=effective_start,
+                            effective_end=effective_end,
+                            source_doc=source_doc
+                        ).first()
+
+                        if existing:
+                            # Legacy violation - log but allow (grandfathered)
+                            import logging
+                            logging.warning(
+                                f"LEGACY Note 31 violation (grandfathered): {chapter_99_code} @ "
+                                f"{duty_rate*100}% for HTS {hts_8digit} (expected {expected_rate*100}%)"
+                            )
+                        else:
+                            # NEW violation - fail ingestion
+                            raise ValueError(
+                                f"NEW Note 31 invariant violation: {chapter_99_code} must have "
+                                f"rate {expected_rate*100}%, got {duty_rate*100}% for HTS {hts_8digit}. "
+                                f"Source: {source_doc}. Fix the source CSV before adding new rows."
+                            )
 
                 # Create unique key for deduplication
                 unique_key = (hts_8digit, duty_rate, str(effective_start))
