@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-01-26T02:04:19.038067",
+  "source_version": "sync_20260126_020419",
+  "files": {
+    "section_301_rates.csv": {
+      "row_count": 10810,
+      "sha256": "7af8c79bc76647459f66d9539f6bf5811e1fccf1c55635e2a2a4615ecdb219e8",
+      "columns": [
+        "id",
+        "hts_8digit",
+        "hts_10digit",
+        "chapter_99_code",
+        "duty_rate",
+        "effective_start",
+        "effective_end",
+        "list_name",
+        "sector",
+        "product_group",
+        "description",
+        "source_doc",
+        "source_doc_id",
+        "supersedes_id",
+        "superseded_by_id",
+        "role",
+        "created_at",
+        "created_by"
+      ],
+      "exported_at": "2026-01-26T02:04:10.892632",
+      "source": "postgresql"
+    },
+    "section_232_rates.csv": {
+      "row_count": 1637,
+      "sha256": "7a7c8cb5912c0370fd4a954849b41a3bc6ae2640474236bf1420b6dd21cfe26b",
+      "columns": [
+        "id",
+        "hts_8digit",
+        "material_type",
+        "chapter_99_claim",
+        "chapter_99_disclaim",
+        "duty_rate",
+        "country_code",
+        "article_type",
+        "effective_start",
+        "effective_end",
+        "source_doc",
+        "source_doc_id",
+        "created_at",
+        "created_by"
+      ],
+      "exported_at": "2026-01-26T02:04:15.171052",
+      "source": "postgresql"
+    },
+    "ieepa_rates.csv": {
+      "row_count": 45,
+      "sha256": "9d2253753ef60b31c7b7bc04f5fbd125cefabc82efa2270bc94f869b36229b84",
+      "columns": [
+        "id",
+        "program_type",
+        "country_code",
+        "chapter_99_code",
+        "duty_rate",
+        "variant",
+        "rate_type",
+        "rate_formula",
+        "effective_start",
+        "effective_end",
+        "source_doc",
+        "source_doc_id",
+        "created_at",
+        "created_by"
+      ],
+      "exported_at": "2026-01-26T02:04:19.037966",
+      "source": "postgresql"
+    }
+  }
+}

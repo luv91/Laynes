@@ -661,3 +661,192 @@ class TestEdgeCases:
             result = engine.evaluate('CN', '85444290', date(2024, 1, 1))
             assert result.applies is False
             assert "not covered" in result.reason
+
+
+# =============================================================================
+# Test: Note 31 Golden Cases (v20.0)
+# =============================================================================
+
+class TestNote31GoldenCases:
+    """
+    Golden test cases for U.S. Note 31 subdivision ↔ rate mapping.
+
+    v20.0 (Jan 2026): Added to catch mapping swaps after bug fix.
+
+    U.S. Note 31 Legal Requirements:
+    - subdivision (b) = 9903.91.01 @ 25%
+    - subdivision (c) = 9903.91.02 @ 50%
+    - subdivision (d) = 9903.91.03 @ 100%
+
+    These tests verify the database has correct mappings for:
+    - Syringes (90183100) → 9903.91.03 @ 100%
+    - Electric Vehicles (87036000) → 9903.91.03 @ 100%
+    - Semiconductors (38180000) → 9903.91.02 @ 50%
+    """
+
+    @pytest.fixture
+    def note31_measures(self, db_session, source_version):
+        """Create Note 31 tariff measures for golden testing."""
+        from app.models.section301 import TariffMeasure, RateStatus
+
+        measures = []
+
+        # Syringes - subdivision (d) @ 100%
+        m1 = TariffMeasure(
+            program='301_NOTE31',
+            ch99_heading='9903.91.03',  # CORRECT: subdivision (d)
+            scope_hts_type='HTS8',
+            scope_hts_value='90183100',  # Syringes and needles
+            additional_rate=Decimal('1.00'),  # CORRECT: 100%
+            rate_status=RateStatus.CONFIRMED.value,
+            legal_basis='Note 31, Subdivision (d)',
+            effective_start=date(2024, 9, 27),
+            effective_end=None,
+            list_name='strategic_medical',
+            sector='medical',
+            source_version_id=source_version.id,
+        )
+        measures.append(m1)
+
+        # Electric Vehicles - subdivision (d) @ 100%
+        m2 = TariffMeasure(
+            program='301_NOTE31',
+            ch99_heading='9903.91.03',  # CORRECT: subdivision (d)
+            scope_hts_type='HTS8',
+            scope_hts_value='87036000',  # Electric vehicles
+            additional_rate=Decimal('1.00'),  # CORRECT: 100%
+            rate_status=RateStatus.CONFIRMED.value,
+            legal_basis='Note 31, Subdivision (d)',
+            effective_start=date(2024, 9, 27),
+            effective_end=None,
+            list_name='strategic_ev',
+            sector='ev',
+            source_version_id=source_version.id,
+        )
+        measures.append(m2)
+
+        # Semiconductors - subdivision (c) @ 50%
+        m3 = TariffMeasure(
+            program='301_NOTE31',
+            ch99_heading='9903.91.02',  # CORRECT: subdivision (c)
+            scope_hts_type='HTS8',
+            scope_hts_value='38180000',  # Semiconductor chemicals
+            additional_rate=Decimal('0.50'),  # CORRECT: 50%
+            rate_status=RateStatus.CONFIRMED.value,
+            legal_basis='Note 31, Subdivision (c)',
+            effective_start=date(2024, 9, 27),
+            effective_end=None,
+            list_name='strategic_semiconductor',
+            sector='semiconductor',
+            source_version_id=source_version.id,
+        )
+        measures.append(m3)
+
+        # Battery parts - subdivision (b) @ 25%
+        m4 = TariffMeasure(
+            program='301_NOTE31',
+            ch99_heading='9903.91.01',  # CORRECT: subdivision (b)
+            scope_hts_type='HTS8',
+            scope_hts_value='85076000',  # Lithium-ion batteries
+            additional_rate=Decimal('0.25'),  # CORRECT: 25%
+            rate_status=RateStatus.CONFIRMED.value,
+            legal_basis='Note 31, Subdivision (b)',
+            effective_start=date(2024, 9, 27),
+            effective_end=None,
+            list_name='strategic_battery',
+            sector='battery',
+            source_version_id=source_version.id,
+        )
+        measures.append(m4)
+
+        for m in measures:
+            db_session.add(m)
+        db_session.commit()
+
+        return measures
+
+    def test_syringes_subdivision_d_100pct(self, app, engine, note31_measures):
+        """
+        GOLDEN CASE 1: Syringes (90183100) → 9903.91.03 @ 100%
+
+        BUG CAUGHT: Was incorrectly mapped to 9903.91.02 @ 100%
+        CORRECT: subdivision (d) = 9903.91.03 @ 100%
+        """
+        with app.app_context():
+            result = engine.evaluate('CN', '90183100', date(2026, 1, 26))
+            assert result.applies is True, "Syringes should be subject to Section 301"
+            assert result.chapter99_heading == '9903.91.03', \
+                f"Syringes must use subdivision (d) code 9903.91.03, got {result.chapter99_heading}"
+            assert result.additional_rate == 1.00, \
+                f"Syringes must have 100% rate (subdivision d), got {result.additional_rate*100}%"
+
+    def test_electric_vehicles_subdivision_d_100pct(self, app, engine, note31_measures):
+        """
+        GOLDEN CASE 2: Electric Vehicles (87036000) → 9903.91.03 @ 100%
+
+        BUG CAUGHT: Was incorrectly mapped to 9903.91.02 @ 100%
+        CORRECT: subdivision (d) = 9903.91.03 @ 100%
+        """
+        with app.app_context():
+            result = engine.evaluate('CN', '87036000', date(2026, 1, 26))
+            assert result.applies is True, "Electric vehicles should be subject to Section 301"
+            assert result.chapter99_heading == '9903.91.03', \
+                f"EVs must use subdivision (d) code 9903.91.03, got {result.chapter99_heading}"
+            assert result.additional_rate == 1.00, \
+                f"EVs must have 100% rate (subdivision d), got {result.additional_rate*100}%"
+
+    def test_semiconductors_subdivision_c_50pct(self, app, engine, note31_measures):
+        """
+        GOLDEN CASE 3: Semiconductors (38180000) → 9903.91.02 @ 50%
+
+        CORRECT: subdivision (c) = 9903.91.02 @ 50%
+        """
+        with app.app_context():
+            result = engine.evaluate('CN', '38180000', date(2026, 1, 26))
+            assert result.applies is True, "Semiconductors should be subject to Section 301"
+            assert result.chapter99_heading == '9903.91.02', \
+                f"Semiconductors must use subdivision (c) code 9903.91.02, got {result.chapter99_heading}"
+            assert result.additional_rate == 0.50, \
+                f"Semiconductors must have 50% rate (subdivision c), got {result.additional_rate*100}%"
+
+    def test_batteries_subdivision_b_25pct(self, app, engine, note31_measures):
+        """
+        GOLDEN CASE 4: Batteries (85076000) → 9903.91.01 @ 25%
+
+        CORRECT: subdivision (b) = 9903.91.01 @ 25%
+        """
+        with app.app_context():
+            result = engine.evaluate('CN', '85076000', date(2026, 1, 26))
+            assert result.applies is True, "Batteries should be subject to Section 301"
+            assert result.chapter99_heading == '9903.91.01', \
+                f"Batteries must use subdivision (b) code 9903.91.01, got {result.chapter99_heading}"
+            assert result.additional_rate == 0.25, \
+                f"Batteries must have 25% rate (subdivision b), got {result.additional_rate*100}%"
+
+    def test_note31_invariant_ch99_rate_consistency(self, app, note31_measures):
+        """
+        META TEST: Verify Note 31 heading ↔ rate invariants in database.
+
+        This tests the DATABASE data itself, not just the engine logic.
+        Ensures that ANY row with 9903.91.XX has the correct rate.
+        """
+        from app.models.section301 import TariffMeasure
+
+        NOTE_31_INVARIANTS = {
+            "9903.91.01": Decimal('0.25'),  # subdivision (b)
+            "9903.91.02": Decimal('0.50'),  # subdivision (c)
+            "9903.91.03": Decimal('1.00'),  # subdivision (d)
+        }
+
+        with app.app_context():
+            for ch99_heading, expected_rate in NOTE_31_INVARIANTS.items():
+                measures = TariffMeasure.query.filter(
+                    TariffMeasure.ch99_heading == ch99_heading
+                ).all()
+
+                for m in measures:
+                    assert m.additional_rate == expected_rate, (
+                        f"DATABASE INVARIANT VIOLATION: {ch99_heading} should have rate "
+                        f"{expected_rate*100}%, but HTS {m.scope_hts_value} has "
+                        f"{m.additional_rate*100}%"
+                    )

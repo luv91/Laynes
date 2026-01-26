@@ -43,14 +43,14 @@ class Chapter99Resolver:
         "9903.88.04": {"program": "section_301", "list": "list_3_200b", "rate": 0.10},
         "9903.88.15": {"program": "section_301", "list": "list_4a", "rate": 0.075},
 
-        # Section 301 - Four-Year Review (2024)
-        "9903.91.01": {"program": "section_301", "list": "strategic_semiconductor", "sector": "semiconductor", "rate": 0.50},
-        "9903.91.02": {"program": "section_301", "list": "strategic_semiconductor", "sector": "semiconductor", "rate": 0.50},
-        "9903.91.03": {"program": "section_301", "list": "strategic_minerals", "sector": "critical_minerals", "rate": 0.25},
+        # Section 301 - Four-Year Review (2024) - U.S. Note 31 subdivisions
+        # (b) = 9903.91.01 @ 25%, (c) = 9903.91.02 @ 50%, (d) = 9903.91.03 @ 100%
+        "9903.91.01": {"program": "section_301", "list": "four_year_review_b", "sector": "strategic", "rate": 0.25},
+        "9903.91.02": {"program": "section_301", "list": "four_year_review_c", "sector": "semiconductor", "rate": 0.50},
+        "9903.91.03": {"program": "section_301", "list": "four_year_review_d", "sector": "ev_medical", "rate": 1.00},
         "9903.91.07": {"program": "section_301", "list": "strategic_medical", "sector": "medical", "rate": 0.50},
         "9903.91.11": {"program": "section_301", "list": "strategic_battery", "sector": "battery", "rate": 0.25},
         "9903.91.12": {"program": "section_301", "list": "strategic_battery", "sector": "battery", "rate": 0.25},
-        "9903.91.20": {"program": "section_301", "list": "strategic_ev", "sector": "ev", "rate": 1.00},
 
         # Section 232 - Steel
         "9903.80.01": {"program": "section_232", "material": "steel", "article": "primary", "rate": 0.25},
