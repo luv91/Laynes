@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-26T02:04:19.038067",
+  "generated_at": "2026-01-30T03:38:13.968150",
   "source_version": "sync_20260126_020419",
   "files": {
     "section_301_rates.csv": {
@@ -71,6 +71,34 @@
       ],
       "exported_at": "2026-01-26T02:04:19.037966",
       "source": "postgresql"
+    },
+    "exclusion_claims.csv": {
+      "row_count": 178,
+      "sha256": "c72cc240ab7dc0148c08fb47b56e0555d7c0f4f1b924422cedd28e40749fcc04",
+      "columns": [
+        "exclusion_id",
+        "note_bucket",
+        "claim_ch99_heading",
+        "source_heading",
+        "item_number",
+        "hts_constraints",
+        "description_scope_text",
+        "scope_text_hash",
+        "effective_start",
+        "effective_end",
+        "verification_required"
+      ],
+      "exported_at": "2026-01-30T03:38:13.967878",
+      "source": "USITC_HTS_Chapter99",
+      "pdf_sha256": "951d37a5f9446aace6263a87f192151e7b315c3bf39315a5c0d7bc97ee48341a",
+      "counts_by_bucket": {
+        "20(vvv)(i)": 47,
+        "20(vvv)(ii)": 22,
+        "20(vvv)(iii)": 70,
+        "20(vvv)(iv)": 25,
+        "20(www)": 14
+      },
+      "total_exclusions": 178
     }
   }
 }

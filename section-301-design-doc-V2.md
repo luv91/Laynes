@@ -1890,3 +1890,608 @@ Section 301 Trade Compliance Engine - Design Document
   - Float tolerance: All comparisons use 1e-6 or 0.01 tolerance to avoid flaky results
 
 
+# =========
+> Strict validation: New ingestion rows with Note 31 invariant violations will now fail immediately
+--> what is the meaning of this? 
+
+⏺ Good question. Here's what it means:
+
+  Before the fix: If someone added a row to the CSV with 9903.91.03 @ 25%, the ingestion script (populate_tariff_tables.py) would silently accept it - that's how the 348
+  bad rows got into the database in the first place.
+
+  After the fix: The ingestion script now checks Note 31 headings against their required rates:
+
+  NOTE_31_INVARIANTS = {
+      "9903.91.01": 0.25,  # subdivision (b) must be 25%
+      "9903.91.02": 0.50,  # subdivision (c) must be 50%
+      "9903.91.03": 1.00,  # subdivision (d) must be 100%
+  }
+
+  If someone tries to add a new row like 9903.91.03 @ 25%, the script will now fail with an error instead of inserting bad data:
+
+  ValueError: NEW Note 31 invariant violation: 9903.91.03 must have
+  rate 100%, got 25% for HTS 72061000. Fix the source CSV before adding new rows.
+
+  This prevents the same bug from happening again during future data ingestion.
+
+  The code is at scripts/populate_tariff_tables.py:340-366.
+
+ ---
+ 13. SECTION 301 EXCLUSIONS — FULL DESIGN (January 29, 2026)
+
+ 13.1 OVERVIEW
+
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                    SECTION 301 EXCLUSIONS — IMPLEMENTATION PLAN                          │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+
+   PROBLEM:
+   ────────
+   Tool shows 8536.90.4000 from China → 45% (25% 301 + 10% Fentanyl + 10% Reciprocal)
+   but does NOT surface that this HTS may qualify for a Section 301 exclusion (9903.88.69).
+   Flexport shows "Potential Exclusion Codes" — we should too.
+
+   STRATEGY:
+   ─────────
+   Phase 1 (IMPLEMENT NOW):  Deterministic surface — show potential exclusion codes
+   Phase 2 (DESIGN NOW, IMPLEMENT LATER): LLM verification helper (Gemini advisory)
+
+   DECISIONS (LOCKED):
+   ───────────────────
+   1. Data source:   USITC HTS Archive (Note 20(vvv) and 20(www)) — canonical, versioned
+                     USTR FRN only for effective window updates
+   2. Output style:  Separate sections:
+                     - "Potential Section 301 Exclusions" (9903.88.69 / 9903.88.70)
+                     - "Potential IEEPA Exemptions" (9903.01.21 / .30 / .34)
+   3. Scope:         Design both layers, implement surface (deterministic) first
+   4. LLM model:     Gemini (advisory only, never auto-approve)
+
+ 13.2 WHAT EXISTS TODAY
+
+   INFRASTRUCTURE                                STATUS
+   ──────────────                                ──────
+
+   ExclusionClaim model (app/models/section301.py:503-638)
+   ├── note_bucket, claim_ch99_heading              ✅ Defined
+   ├── hts_constraints (JSONB)                      ✅ Defined
+   ├── description_scope_text                       ✅ Defined
+   ├── effective_start/end                          ✅ Defined
+   ├── verification_required (default=True)         ✅ Defined
+   ├── find_exclusion_candidates() method           ✅ Defined
+   └── matches_hts() method                         ✅ Defined
+
+   Section301Exclusion model (tariff_tables.py:457-494)
+   ├── Legacy stacking model                        ✅ Defined
+   └── Used by stacking_tools.py                    ✅ Connected
+
+   Section301Rate.role field ('impose'/'exclude')   ✅ Working
+   ├── Exclusion precedence in queries              ✅ Working
+   └── 1 exclusion row in DB (HTS 84733051)         ⚠️ Only 1 row
+
+   section301_engine.py _check_exclusions()         ✅ Method exists
+   ├── Calls ExclusionClaim.find_exclusion_candidates()
+   └── Returns ExclusionResult with verification_required=true
+
+   IEEPA exemption variants in ieepa_rates          ✅ Data exists
+   ├── annex_ii_exempt (9903.01.32)                 ✅ 9 rows
+   ├── section_232_exempt (9903.01.33)              ✅ 9 rows
+   └── us_content_exempt (9903.01.34)               ✅ 9 rows
+
+   WHAT'S MISSING:
+   ───────────────
+   ✗ Actual exclusion data (need 178 rows, have 1)
+   ✗ Data ingestion from USITC HTS Archive
+   ✗ "Potential Exclusion Codes" in stacking output
+   ✗ "Potential IEEPA Exemptions" in stacking output
+   ✗ Gemini verification prompts (designed, not wired)
+
+ 13.3 DATA MODEL — exclusion_claims TABLE
+
+   ExclusionClaim (already defined in app/models/section301.py)
+   ──────────────
+
+   Column                    Type         Notes
+   ──────                    ────         ─────
+   id                        Integer PK   Auto-increment
+   exclusion_id              String(32)   Stable ID: "20vvv-042", "20www-003"
+   note_bucket               String(16)   "20(vvv)" | "20(www)"
+   claim_ch99_heading        String(16)   "9903.88.69" | "9903.88.70"
+   hts_constraints           JSONB        {"hts10_exact":["8536904000"],"hts8_prefix":["85369040"]}
+   description_scope_text    Text         Full legal scope description from HTS note
+   scope_text_hash           String(64)   SHA-256 of scope text (change detection)
+   effective_start           Date         Current: 2025-11-30
+   effective_end             Date         Current: 2026-11-10 (end-exclusive → store 2026-11-11)
+   verification_required     Boolean      Always True
+   source_version_id         Integer FK   Links to source_versions table
+
+   INDEXES:
+   ────────
+   (claim_ch99_heading)
+   (effective_start, effective_end)
+   GIN index on hts_constraints (PostgreSQL)
+
+   EXPECTED ROW COUNTS:
+   ────────────────────
+   9903.88.69 (Note 20(vvv)): ~164 exclusions
+   9903.88.70 (Note 20(www)):  ~14 exclusions (solar manufacturing equipment)
+   TOTAL: ~178 rows
+
+ 13.4 DATA INGESTION — USITC HTS ARCHIVE
+
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                    EXCLUSION DATA INGESTION PIPELINE                                     │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+
+   SOURCE: USITC HTS Archive → Chapter 99 → U.S. Note 20(vvv) and 20(www)
+   URL:    https://hts.usitc.gov (current release)
+
+   INGESTION STEPS:
+   ────────────────
+
+   1. DOWNLOAD HTS Chapter 99 data (JSON/CSV/HTML)
+      └── Parse U.S. Note 20(vvv)(i), (ii), (iii), (iv) and 20(www)
+      └── Extract: HTS10 codes + product scope descriptions
+
+   2. FOR EACH exclusion entry:
+      ├── Generate stable exclusion_id:
+      │   - "20vvv-{sequence}" for Note 20(vvv) entries
+      │   - "20www-{sequence}" for Note 20(www) entries
+      ├── Extract hts_constraints:
+      │   - HTS10 exact codes from the note text
+      │   - HTS8 prefix if the exclusion covers a full 8-digit range
+      ├── Store description_scope_text (full legal text)
+      ├── Compute scope_text_hash (SHA-256) for change detection
+      └── Set note_bucket: "20(vvv)" or "20(www)"
+
+   3. SET EFFECTIVE WINDOW from USTR FRN:
+      ├── Current: effective_start = 2025-11-30
+      ├── Current: effective_end = 2026-11-11 (end-exclusive for "through Nov 10, 2026")
+      └── Source: USTR FRN extending 178 exclusions (Phoebe's PDF)
+
+   4. UPSERT into exclusion_claims:
+      ├── Match by exclusion_id (stable across ingestions)
+      ├── If scope_text_hash changed → update description + log
+      ├── If effective window changed → SCD update (close old, insert new)
+      └── Never delete (preserve history)
+
+   5. SYNC to SQLite + CSV (same as section_301_rates pattern)
+
+
+   FILE TO CREATE:
+   ───────────────
+   scripts/populate_exclusion_claims.py
+   └── Downloads USITC HTS data
+   └── Parses Note 20(vvv) and 20(www)
+   └── Populates exclusion_claims table
+   └── Creates data/current/exclusion_claims.csv
+
+ 13.5 PHASE 1: DETERMINISTIC SURFACE — "Potential Exclusion Codes"
+
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │              PHASE 1: SURFACE POTENTIAL EXCLUSIONS (IMPLEMENT NOW)                        │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+
+   ALGORITHM (runs AFTER Section 301 inclusion is determined to apply):
+   ────────────────────────────────────────────────────────────────────
+
+   Inputs: HTS10, entry_date, COO (must be CN, 301 must apply)
+
+   Step 1: Query exclusion_claims WHERE:
+           - hts_constraints contains HTS10 (or HTS8 prefix)
+           - effective_start <= entry_date < effective_end
+
+   Step 2: Return potential_exclusions array:
+           [{exclusion_id, claim_ch99_heading, note_bucket, snippet, source_version}]
+
+   Step 3: Set verification_required = true (ALWAYS)
+
+   IMPORTANT: Exclusion candidates are evaluated ONLY AFTER Section 301
+   inclusion is determined to apply for the HTS/COO/date.
+   This prevents surfacing 9903.88.69 for HTS codes not in 301 scope.
+
+
+   OUTPUT SCHEMA — Section 301 Exclusions:
+   ───────────────────────────────────────
+
+   "potential_section301_exclusions": {
+     "has_candidates": true,
+     "candidates": [
+       {
+         "exclusion_id": "20vvv-042",
+         "claim_ch99_heading": "9903.88.69",
+         "note_bucket": "20(vvv)",
+         "description_snippet": "Terminals, electrical splices... not exceeding 5 A...",
+         "effective_through": "2026-11-10",
+         "source_version": "USTR_FRN_2025-XXXXX"
+       }
+     ],
+     "verification_required": true,
+     "note": "Exclusion eligibility requires product-level verification."
+   }
+
+
+   OUTPUT SCHEMA — IEEPA Exemptions:
+   ─────────────────────────────────
+
+   "potential_ieepa_exemptions": [
+     {
+       "code": "9903.01.32",
+       "label": "Annex II Exempt",
+       "description": "Products listed in EO 14257 Annex II",
+       "applies_to": "IEEPA Reciprocal Tariff"
+     },
+     {
+       "code": "9903.01.33",
+       "label": "Section 232 Exempt",
+       "description": "Articles subject to Section 232 duties",
+       "applies_to": "IEEPA Reciprocal Tariff"
+     },
+     {
+       "code": "9903.01.34",
+       "label": "US Content Exempt",
+       "description": "Articles with US content >= 20%",
+       "applies_to": "IEEPA Reciprocal Tariff"
+     }
+   ]
+
+
+   STACKING OUTPUT (what the user sees):
+   ─────────────────────────────────────
+
+   Tariff Stacker
+   ──────────────
+   HTS: 8536.90.4000 | COO: China | Value: $10,000
+
+   ACE Entry Slices
+   ────────────────
+   9903.88.01  Section 301 List 1         25.0%  apply
+   9903.01.24  IEEPA Fentanyl Tariff      10.0%  apply
+   9903.01.25  IEEPA Reciprocal Tariff    10.0%  paid
+   8536.90.40  Base HTS                    0.0%  MFN
+   ────────────────────────────────────────────────
+   TOTAL                                  45.0%
+
+   Potential Section 301 Exclusions              ← NEW SECTION
+   ─────────────────────────────────
+   If your product matches the exclusion scope, you may claim:
+   • 9903.88.69 — Note 20(vvv): "Terminals, electrical splices..."
+     Valid through: November 10, 2026
+     ⚠ Verification required — review product description against scope text
+
+   Potential IEEPA Exemptions                    ← NEW SECTION
+   ──────────────────────────
+   • 9903.01.32 — Annex II Exempt (replaces 9903.01.25)
+   • 9903.01.33 — Section 232 Exempt (replaces 9903.01.25)
+   • 9903.01.34 — US Content >= 20% Exempt (replaces 9903.01.25)
+
+ 13.6 PHASE 2: LLM VERIFICATION HELPER (DESIGN NOW, IMPLEMENT LATER)
+
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │              PHASE 2: GEMINI VERIFICATION HELPER (DESIGN ONLY)                           │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+
+   MODEL: Gemini (advisory only, never auto-approve)
+
+   FLOW:
+   ─────
+   Deterministic candidates (Phase 1)
+        │
+        ▼
+   ┌─────────────────────────────────────────────────────┐
+   │  PROMPT 0: CANDIDATE RANKING                        │
+   │  ──────────────────────────                         │
+   │  Input: product_description + N candidates          │
+   │  Output: ranked_candidates with relevance_score     │
+   │          (0.0-1.0), top_reasons, missing_info       │
+   │  When: N > 1 candidates from deterministic match    │
+   └──────────────────────┬──────────────────────────────┘
+                          │ (top 3 candidates)
+                          ▼
+   ┌─────────────────────────────────────────────────────┐
+   │  PROMPT 1: CONSTRAINT EXTRACTION (per candidate)    │
+   │  ──────────────────────────────                     │
+   │  Input: exclusion scope_text                        │
+   │  Output: structured constraints[]                   │
+   │    - constraint_type: numeric|enum|boolean|text      │
+   │    - field: weight_kg, material, intended_use, etc.  │
+   │    - operator: =, <, >, contains, in, not_in         │
+   │    - hard_constraint: true/false                     │
+   │    - required_evidence: [datasheet, spec sheet...]   │
+   │  Also: disqualifiers[], keywords[]                  │
+   └──────────────────────┬──────────────────────────────┘
+                          │
+                          ▼
+   ┌─────────────────────────────────────────────────────┐
+   │  PROMPT 2: VERIFICATION PACKET                      │
+   │  ─────────────────────────                          │
+   │  Input: product info + extracted constraints        │
+   │  Output:                                            │
+   │    - constraint_results: {passed[], failed[],       │
+   │                           unknown[]}                │
+   │    - evidence_checklist: [{item, why_needed}]       │
+   │    - missing_attributes: [string]                   │
+   │    - risk_notes: [string]                           │
+   │    - verification_status: "REVIEW_REQUIRED" ALWAYS  │
+   └─────────────────────────────────────────────────────┘
+
+
+   GUARDRAILS (ENFORCED IN CODE, NOT PROMPTS):
+   ──────────────────────────────────────────
+   1. Gemini NEVER sets applies=true for an exclusion
+   2. Only allow exclusion "apply" if human/compliance marks "validated"
+   3. Log model_version, prompt_hash, and responses for audit
+   4. verification_status is ALWAYS "REVIEW_REQUIRED" — hardcoded in code,
+      not trusted from model output
+   5. If Gemini returns anything other than REVIEW_REQUIRED, override it
+
+
+   FIELD VOCABULARY (for constraint extraction):
+   ─────────────────────────────────────────────
+   Physical:   weight_kg, length_mm, width_mm, height_mm, diameter_mm
+   Electrical: power_w, voltage_v, current_a
+   Material:   material, composition
+   Function:   intended_use, compatible_device, form_factor
+   Boolean:    is_medical_grade, has_feature_<x>
+   Other:      country_of_origin, end_use_industry
+
+ 13.7 GEMINI PROMPT TEMPLATES
+
+   PROMPT 0 — CANDIDATE RANKING
+   ─────────────────────────────
+
+   SYSTEM:
+   You are a trade compliance assistant. Your job is to rank Section 301
+   exclusion candidates for a product.
+   You MUST NOT approve eligibility. You MUST NOT say an exclusion applies.
+   Return JSON only. Do not include markdown.
+
+   USER:
+   We are evaluating possible U.S. Section 301 exclusion claims for a product.
+   The importer must verify scope.
+   Given the product info and the candidate exclusion scope texts, rank the
+   candidates by relevance and explain why.
+
+   Product:
+   - hts10: "{{HTS10}}"
+   - entry_date: "{{ENTRY_DATE}}"
+   - product_description: "{{PRODUCT_DESCRIPTION}}"
+   - structured_attributes (may be incomplete):
+   {{STRUCTURED_ATTRIBUTES_JSON}}
+
+   Candidate exclusions (already pre-filtered by HTS/date):
+   {{CANDIDATES_JSON}}
+
+   Output JSON schema:
+   {
+     "ranked_candidates": [
+       {
+         "exclusion_id": "string",
+         "claim_ch99_heading": "9903.88.69|9903.88.70",
+         "relevance_score": 0.0,
+         "top_reasons": ["string", "string", "string"],
+         "matched_phrases": ["string", "string"],
+         "missing_info": ["string", "string"]
+       }
+     ],
+     "notes": ["string"]
+   }
+
+   Rules:
+   - relevance_score is 0.0 to 1.0 and is relative ranking only.
+   - Do not state "applies" or "eligible".
+   - If product_description is insufficient, increase missing_info.
+   - Keep top_reasons short and concrete (no legal advice).
+
+
+   ─────────────────────────────────────────────────────────────────────
+
+   PROMPT 1 — CONSTRAINT EXTRACTION (per candidate)
+   ─────────────────────────────────────────────────
+
+   SYSTEM:
+   You extract objective eligibility constraints from legal exclusion scope text.
+   Return JSON only. No markdown. No extra commentary.
+   Do not approve eligibility.
+
+   USER:
+   Extract structured constraints from this exclusion scope text.
+
+   Exclusion:
+   - exclusion_id: "{{EXCLUSION_ID}}"
+   - claim_ch99_heading: "{{CLAIM_CH99}}"
+   - note_bucket: "{{NOTE_BUCKET}}"
+   - scope_text:
+   """{{DESCRIPTION_SCOPE_TEXT}}"""
+
+   Output JSON schema:
+   {
+     "exclusion_id": "string",
+     "constraints": [
+       {
+         "constraint_type": "numeric|enum|boolean|text",
+         "field": "string",
+         "operator": "=|!=|<|<=|>|>=|contains|not_contains|in|not_in",
+         "value": "string_or_number_or_array",
+         "unit": "string_or_null",
+         "required_evidence": ["string"],
+         "hard_constraint": true
+       }
+     ],
+     "disqualifiers": [
+       {
+         "field": "string",
+         "operator": "contains|in|=",
+         "value": "string_or_array",
+         "required_evidence": ["string"]
+       }
+     ],
+     "keywords": ["string"]
+   }
+
+   Rules:
+   - Prefer objective, testable constraints (dimensions, weight, material,
+     power rating, function, composition).
+   - If "for use with X" or "of a kind used for X", encode as text constraint
+     on intended_use.
+   - If ambiguous, still output constraint but include required_evidence.
+   - hard_constraint=true for anything that must be satisfied exactly.
+
+
+   ─────────────────────────────────────────────────────────────────────
+
+   PROMPT 2 — VERIFICATION PACKET
+   ───────────────────────────────
+
+   SYSTEM:
+   You are generating a verification checklist for a Section 301 exclusion claim.
+   You MUST NOT approve eligibility. Always set verification_status to
+   REVIEW_REQUIRED.
+   Return JSON only.
+
+   USER:
+   Given product info and extracted constraints, evaluate which constraints are
+   satisfied, not satisfied, or unknown. Generate an evidence checklist.
+
+   Product:
+   - hts10: "{{HTS10}}"
+   - entry_date: "{{ENTRY_DATE}}"
+   - product_description: "{{PRODUCT_DESCRIPTION}}"
+   - structured_attributes:
+   {{STRUCTURED_ATTRIBUTES_JSON}}
+
+   Exclusion candidate:
+   - exclusion_id: "{{EXCLUSION_ID}}"
+   - claim_ch99_heading: "{{CLAIM_CH99}}"
+   - scope_text:
+   """{{DESCRIPTION_SCOPE_TEXT}}"""
+
+   Extracted constraints:
+   {{CONSTRAINTS_JSON}}
+
+   Output JSON schema:
+   {
+     "exclusion_id": "string",
+     "claim_ch99_heading": "9903.88.69|9903.88.70",
+     "verification_status": "REVIEW_REQUIRED",
+     "constraint_results": {
+       "passed": [{"field":"string","reason":"string"}],
+       "failed": [{"field":"string","reason":"string"}],
+       "unknown": [{"field":"string","reason":"string"}]
+     },
+     "evidence_checklist": [
+       {"item":"string","why_needed":"string"}
+     ],
+     "missing_attributes": ["string"],
+     "risk_notes": ["string"]
+   }
+
+   Rules:
+   - Do NOT state "eligible" or "applies".
+   - If any hard_constraint is unknown, put it in unknown and list evidence.
+   - evidence_checklist should be practical (datasheet, spec sheet, BOM,
+     product link, photos, COO cert).
+   - risk_notes should highlight ambiguity in product description vs scope.
+
+ 13.8 IMPLEMENTATION STEPS (ORDERED)
+
+   PHASE 1 — DETERMINISTIC SURFACE (Implement Now)
+   ────────────────────────────────────────────────
+
+   STEP 1: INGEST EXCLUSION DATA
+   ├── Create: scripts/populate_exclusion_claims.py
+   ├── Download USITC HTS Chapter 99, Note 20(vvv) and 20(www)
+   ├── Parse 178 exclusion entries → exclusion_claims table
+   ├── Set effective window from USTR FRN (2025-11-30 to 2026-11-11)
+   ├── Export: data/current/exclusion_claims.csv
+   └── Update: data/current/manifest.json
+
+   STEP 2: ADD EXCLUSION CANDIDATE QUERY TO STACKING ENGINE
+   ├── Modify: app/chat/tools/stacking_tools.py
+   │   └── After check_program_inclusion("section_301") returns included=True:
+   │       └── Query exclusion_claims for matching HTS10/HTS8 + date
+   │       └── Return potential_exclusions[] in response
+   ├── Modify: app/chat/graphs/stacking_rag.py
+   │   └── In build_entry_stacks_node(): capture exclusion candidates
+   │   └── Pass to output formatting
+   └── No changes to duty calculation (exclusions are informational only)
+
+   STEP 3: ADD "POTENTIAL EXCLUSION CODES" TO OUTPUT
+   ├── Modify: app/chat/graphs/stacking_rag.py → generate_output_node()
+   │   └── Add "Potential Section 301 Exclusions" section
+   │   └── Add "Potential IEEPA Exemptions" section
+   ├── Modify: app/web/tariff_views.py
+   │   └── Add potential_exclusions to API JSON response
+   └── Frontend: Add exclusion display in tariff stacker UI
+
+   STEP 4: ADD IEEPA EXEMPTION SURFACING
+   ├── Already have data in ieepa_rates (9903.01.32, .33, .34)
+   ├── Surface as "Potential IEEPA Exemptions" when IEEPA applies
+   └── Static list (not HTS-dependent, applies to all IEEPA-affected goods)
+
+   STEP 5: TESTS
+   ├── Test exclusion candidate matching (HTS10 exact, HTS8 prefix)
+   ├── Test temporal window (before/during/after exclusion period)
+   ├── Test output formatting (exclusion section appears only when 301 applies)
+   ├── Test IEEPA exemptions surfaced when IEEPA applies
+   └── Test: exclusion NOT shown when 301 doesn't apply (COO != CN, HTS not covered)
+
+
+   PHASE 2 — GEMINI VERIFICATION (Implement Later)
+   ────────────────────────────────────────────────
+
+   STEP 6: WIRE GEMINI PROMPTS
+   ├── Create: app/services/exclusion_verifier.py
+   │   ├── rank_candidates(product, candidates) → Prompt 0
+   │   ├── extract_constraints(exclusion) → Prompt 1
+   │   └── generate_verification_packet(product, exclusion, constraints) → Prompt 2
+   ├── Guardrails: hardcode verification_status = "REVIEW_REQUIRED" in code
+   └── Logging: model_version, prompt_hash, raw response for audit
+
+   STEP 7: ADD VERIFICATION UI
+   ├── User can click exclusion candidate → see verification packet
+   ├── Evidence checklist display
+   ├── Pass/fail/unknown constraint results
+   └── "Request Review" button → compliance workflow
+
+ 13.9 FILES TO MODIFY/CREATE
+
+   FILE                                              ACTION    PHASE
+   ────                                              ──────    ─────
+   scripts/populate_exclusion_claims.py              CREATE    1
+   app/chat/tools/stacking_tools.py                  MODIFY    1
+   app/chat/graphs/stacking_rag.py                   MODIFY    1
+   app/web/tariff_views.py                           MODIFY    1
+   data/current/exclusion_claims.csv                 CREATE    1
+   data/current/manifest.json                        UPDATE    1
+   tests/test_exclusion_candidates.py                CREATE    1
+   app/services/exclusion_verifier.py                CREATE    2
+   tests/test_exclusion_verifier.py                  CREATE    2
+
+ 13.10 EXPECTED OUTPUT AFTER PHASE 1
+
+   For HTS 8536.90.4000 from China:
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  ACE Entry Slices                                           │
+   ├─────────────────────────────────────────────────────────────┤
+   │  9903.88.01  Section 301 List 1         25.0%  apply        │
+   │  9903.01.24  IEEPA Fentanyl Tariff      10.0%  apply        │
+   │  9903.01.25  IEEPA Reciprocal Tariff    10.0%  paid         │
+   │  8536.90.40  Base HTS                    0.0%  MFN          │
+   │  ─────────────────────────────────────────────────          │
+   │  TOTAL                                  45.0%               │
+   ├─────────────────────────────────────────────────────────────┤
+   │  Potential Section 301 Exclusions                           │
+   │  ─────────────────────────────────                          │
+   │  If your product matches the exclusion scope, you may claim:│
+   │  • 9903.88.69 — Note 20(vvv): "Terminals, electrical       │
+   │    splices and electrical couplings..."                      │
+   │    Valid through: November 10, 2026                         │
+   │    ⚠ Verification required                                  │
+   ├─────────────────────────────────────────────────────────────┤
+   │  Potential IEEPA Exemptions                                 │
+   │  ──────────────────────────                                 │
+   │  • 9903.01.32 — Annex II Exempt                             │
+   │  • 9903.01.33 — Section 232 Exempt                          │
+   │  • 9903.01.34 — US Content >= 20% Exempt                    │
+   └─────────────────────────────────────────────────────────────┘

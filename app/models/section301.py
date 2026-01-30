@@ -522,18 +522,27 @@ class ExclusionClaim(BaseModel):
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid4()))
 
+    # Stable exclusion identifier: "vvvi-031", "www-003"
+    exclusion_id = db.Column(db.String(32), unique=True, nullable=False)
+
     # Note bucket (which exclusion list)
-    note_bucket = db.Column(db.String(32), nullable=False)  # "20(vvv)", "20(www)"
+    note_bucket = db.Column(db.String(32), nullable=False)  # "20(vvv)(i)", "20(www)"
 
     # Chapter 99 heading for the exclusion
     claim_ch99_heading = db.Column(db.String(16), nullable=False)  # "9903.88.69", "9903.88.70"
 
+    # Source heading that this exclusion exempts from
+    source_heading = db.Column(db.String(16), nullable=True)  # "9903.88.01", "9903.88.02", etc.
+
     # HTS constraints (JSONB for flexible matching)
-    # Example: {"hts8_prefix": "8544", "hts10_exact": ["8544429090"]}
+    # Example: {"hts8_prefix": ["85369040"], "hts10_exact": ["8536904000"]}
     hts_constraints = db.Column(db.JSON, nullable=True)
 
     # Description scope text (for semantic matching)
     description_scope_text = db.Column(db.Text, nullable=True)
+
+    # SHA-256 of scope text for change detection across ingestions
+    scope_text_hash = db.Column(db.String(64), nullable=True)
 
     # Temporal validity (end-exclusive)
     effective_start = db.Column(db.Date, nullable=False)
@@ -614,13 +623,14 @@ class ExclusionClaim(BaseModel):
         """
         Find exclusion candidates for an HTS code on entry_date.
 
-        Returns all potentially matching exclusions that are:
-        - Active on entry_date
-        - Have HTS constraints that might match
+        Matching priority:
+        1. Exact HTS10 match — return only these if any exist
+        2. HTS8 prefix fallback — only when no exact HTS10 match found
 
         NOTE: These are CANDIDATES only. Verification always required.
         """
         hts_normalized = hts_code.replace(".", "").strip()
+        hts8 = hts_normalized[:8]
 
         # Get all active exclusions
         active_exclusions = cls.query.filter(
@@ -631,10 +641,31 @@ class ExclusionClaim(BaseModel):
             )
         ).all()
 
-        # Filter by HTS match
-        candidates = [exc for exc in active_exclusions if exc.matches_hts(hts_normalized)]
+        # Split into exact HTS10 matches vs HTS8 fallback
+        exact_hts10 = []
+        hts8_fallback = []
 
-        return candidates
+        for exc in active_exclusions:
+            if not exc.hts_constraints:
+                continue
+            constraints = exc.hts_constraints
+
+            # Check exact HTS10 match
+            if "hts10_exact" in constraints:
+                if hts_normalized in constraints["hts10_exact"]:
+                    exact_hts10.append(exc)
+                    continue
+
+            # Check HTS8 prefix match (fallback only)
+            if "hts8_prefix" in constraints:
+                prefixes = constraints["hts8_prefix"]
+                if isinstance(prefixes, str):
+                    prefixes = [prefixes]
+                if hts8 in prefixes or any(hts8.startswith(p) for p in prefixes):
+                    hts8_fallback.append(exc)
+
+        # Exact HTS10 wins; HTS8 only when no exact match
+        return exact_hts10 if exact_hts10 else hts8_fallback
 
 
 # =============================================================================

@@ -8,6 +8,7 @@ from datetime import date
 from flask import Blueprint, request, jsonify, render_template_string
 from app.chat.graphs.stacking_rag import StackingRAG
 from app.services.freshness import get_freshness_service
+from app.models.section301 import ExclusionClaim
 
 bp = Blueprint("tariff", __name__)
 
@@ -72,6 +73,24 @@ def calculate_tariff():
         # Return results
         total_duty = result.get("total_duty") or {}
 
+        # Check if Section 301 applies in any entry
+        has_301 = any(
+            line.get("program", "").startswith("Section 301")
+            for entry in result.get("entries", [])
+            for line in entry.get("stack", [])
+            if line.get("action") == "apply"
+        )
+
+        potential_exclusions = []
+        if has_301:
+            try:
+                candidates = ExclusionClaim.find_exclusion_candidates(
+                    hts_code, date.today()
+                )
+                potential_exclusions = [c.as_dict() for c in candidates]
+            except Exception:
+                pass  # Don't break calculation if exclusion query fails
+
         # Get freshness info
         try:
             freshness_service = get_freshness_service()
@@ -93,6 +112,8 @@ def calculate_tariff():
             "entries": result.get("entries", []),
             "total_duty": total_duty,
             "effective_rate": total_duty.get("effective_rate", 0),
+            # Section 301 exclusion candidates
+            "potential_exclusions": potential_exclusions,
             # Data freshness
             "data_freshness": freshness,
         })
@@ -353,6 +374,141 @@ CALCULATOR_HTML = '''
         .stack-action.disclaim { background: #f1f5f9; color: #64748b; }
         .stack-action.paid { background: #fef3c7; color: #92400e; }
         .stack-action.exempt { background: #d1fae5; color: #065f46; }
+        /* Exclusion candidates section */
+        .exclusions-section {
+            background: #fffbeb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #f59e0b;
+        }
+        .exclusions-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .exclusions-note {
+            color: #78716c;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .exclusion-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid #fde68a;
+        }
+        .exclusion-item:last-child { margin-bottom: 0; }
+        .exclusion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .exclusion-code {
+            font-family: 'SF Mono', Monaco, monospace;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+        .exclusion-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .exclusion-scope {
+            font-size: 13px;
+            color: #57534e;
+            line-height: 1.4;
+        }
+        .exclusion-source {
+            font-size: 11px;
+            color: #a8a29e;
+            margin-top: 6px;
+        }
+        /* Simulation toggle */
+        .exclusion-simulate {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #fde68a;
+        }
+        .exclusion-simulate input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #f59e0b;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .exclusion-simulate label {
+            font-size: 13px;
+            color: #78716c;
+            cursor: pointer;
+        }
+        .exclusion-simulate .sim-helper {
+            font-size: 11px;
+            color: #a8a29e;
+            margin-top: 4px;
+        }
+        /* Simulation banner */
+        .simulation-banner {
+            display: none;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #92400e;
+            text-align: center;
+        }
+        .simulation-banner.active { display: block; }
+        /* Simulated totals */
+        .simulated-summary {
+            display: none;
+            background: #fffbeb;
+            border: 1px dashed #f59e0b;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .simulated-summary.active { display: block; }
+        .simulated-summary .sim-label {
+            font-size: 12px;
+            color: #92400e;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .simulated-summary .sim-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #059669;
+        }
+        .simulated-summary .sim-rate {
+            font-size: 1rem;
+            color: #059669;
+            opacity: 0.9;
+        }
+        .simulated-summary .sim-disclaimer {
+            font-size: 11px;
+            color: #a8a29e;
+            margin-top: 6px;
+        }
         .loading {
             display: none;
             text-align: center;
@@ -616,8 +772,21 @@ CALCULATOR_HTML = '''
                 <p><span id="effectiveRate">0%</span> effective duty rate</p>
             </div>
 
+            <div class="simulation-banner" id="simulationBanner">
+                Simulation active — totals assume exclusion eligibility. Broker verification required.
+            </div>
+
+            <div class="simulated-summary" id="simulatedSummary">
+                <div class="sim-label">Simulated with exclusion</div>
+                <div class="sim-amount" id="simTotalDuty">$0.00</div>
+                <div class="sim-rate"><span id="simEffectiveRate">0%</span> effective duty rate</div>
+                <div class="sim-disclaimer">Assumes eligibility — not confirmed</div>
+            </div>
+
             <div class="entries-title">ACE Entry Slices</div>
             <div id="entries"></div>
+
+            <div id="potentialExclusions"></div>
 
             <!-- Freshness indicator -->
             <div class="freshness-indicator" id="freshnessIndicator">
@@ -635,6 +804,7 @@ CALCULATOR_HTML = '''
         let sessionId = null;
         let lastHtsCode = '';
         let lastCountry = '';
+        let lastResult = null;
         let materialsMode = 'percentage';  // 'percentage' or 'value'
 
         function setMaterialsMode(mode) {
@@ -820,6 +990,7 @@ CALCULATOR_HTML = '''
         }
 
         function displayResults(result) {
+            lastResult = result;  // Store for simulation recalc
             const totalDuty = result.total_duty?.total_duty_amount || 0;
             const effectiveRate = (result.effective_rate || 0) * 100;
 
@@ -912,6 +1083,42 @@ CALCULATOR_HTML = '''
 
             document.getElementById('entries').innerHTML = entriesHtml;
 
+            // Render potential Section 301 exclusions if present
+            const exclusionsContainer = document.getElementById('potentialExclusions');
+            const exclusions = result.potential_exclusions || [];
+            if (exclusions.length > 0) {
+                const exclusionsHtml = exclusions.map((exc, idx) => `
+                    <div class="exclusion-item">
+                        <div class="exclusion-header">
+                            <span>
+                                <span class="exclusion-code">${exc.claim_ch99_heading}</span>
+                                ${exc.note_bucket}
+                            </span>
+                            <span class="exclusion-badge">Verification Required</span>
+                        </div>
+                        <div class="exclusion-scope">${exc.description_scope_text || ''}</div>
+                        <div class="exclusion-source">Source: U.S. Note ${exc.note_bucket}${exc.effective_end ? ', extended through ' + new Date(exc.effective_end).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : ''}</div>
+                        <div class="exclusion-simulate">
+                            <input type="checkbox" id="simExc${idx}" onchange="toggleExclusionSim(this, ${idx})">
+                            <div>
+                                <label for="simExc${idx}">Simulate duty if this exclusion is claimed</label>
+                                <div class="sim-helper">Simulation only. Broker verification required before claiming.</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                exclusionsContainer.innerHTML = `
+                    <div class="exclusions-section">
+                        <div class="exclusions-title">Potential Section 301 Exclusions</div>
+                        <p class="exclusions-note">These exclusion codes MAY apply to this HTS code. Broker verification is required before claiming.</p>
+                        ${exclusionsHtml}
+                    </div>
+                `;
+            } else {
+                exclusionsContainer.innerHTML = '';
+            }
+
             // Populate freshness indicators
             displayFreshness(result.data_freshness);
 
@@ -928,6 +1135,85 @@ CALCULATOR_HTML = '''
             document.getElementById('copperValue').value = '';
             document.getElementById('steelValue').value = '';
             document.getElementById('aluminumValue').value = '';
+            // Clear simulation state
+            document.getElementById('simulationBanner').classList.remove('active');
+            document.getElementById('simulatedSummary').classList.remove('active');
+            lastResult = null;
+        }
+
+        function toggleExclusionSim(checkbox, excIdx) {
+            if (!lastResult) return;
+
+            // Mutual exclusion: only one exclusion can be simulated at a time
+            if (checkbox.checked) {
+                document.querySelectorAll('[id^="simExc"]').forEach(cb => {
+                    if (cb !== checkbox) {
+                        if (cb.checked) { cb.checked = false; }
+                    }
+                });
+            }
+
+            const isChecked = checkbox.checked;
+            const banner = document.getElementById('simulationBanner');
+            const simSummary = document.getElementById('simulatedSummary');
+
+            // Find Section 301 duty amount from entries
+            let duty301Amount = 0;
+            const entries = lastResult.entries || [];
+            for (const entry of entries) {
+                for (const line of (entry.stack || [])) {
+                    if (line.program && line.program.startsWith('Section 301') && line.action === 'apply') {
+                        duty301Amount = (line.duty_rate || 0) * (lastResult.product_value || 0);
+                    }
+                }
+            }
+
+            // Find the 301 stack-item element(s) in the DOM
+            const exc = (lastResult.potential_exclusions || [])[excIdx];
+
+            if (isChecked && exc) {
+                // Calculate simulated totals
+                const realTotal = lastResult.total_duty?.total_duty_amount || 0;
+                const simTotal = Math.max(0, realTotal - duty301Amount);
+                const simRate = (lastResult.product_value > 0)
+                    ? simTotal / lastResult.product_value : 0;
+
+                document.getElementById('simTotalDuty').textContent = '$' + simTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('simEffectiveRate').textContent = (simRate * 100).toFixed(1) + '%';
+
+                banner.classList.add('active');
+                simSummary.classList.add('active');
+
+                // In-place swap: find the 301 row and replace its content
+                document.querySelectorAll('.stack-item').forEach(item => {
+                    if (item.textContent.includes('Section 301') && !item.classList.contains('base-hts')) {
+                        // Save original so we can restore on uncheck
+                        if (!item.dataset.originalHtml) {
+                            item.dataset.originalHtml = item.innerHTML;
+                        }
+                        item.innerHTML = `
+                            <span>
+                                <span class="stack-code">${exc.claim_ch99_heading}</span>
+                                Section 301 Exclusion
+                            </span>
+                            <span>
+                                <span style="color: #64748b; margin-right: 8px;">0%</span>
+                                <span class="stack-action" style="background: #fef3c7; color: #92400e; font-style: italic;">SIMULATED</span>
+                            </span>
+                        `;
+                    }
+                });
+            } else {
+                // Reset: restore original 301 row content
+                banner.classList.remove('active');
+                simSummary.classList.remove('active');
+                document.querySelectorAll('.stack-item').forEach(item => {
+                    if (item.dataset.originalHtml) {
+                        item.innerHTML = item.dataset.originalHtml;
+                        delete item.dataset.originalHtml;
+                    }
+                });
+            }
         }
 
         function displayFreshness(freshness) {
