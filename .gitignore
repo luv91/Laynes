@@ -71,3 +71,6 @@ scripts/to_be_deleted/
 
 # Source documents for parse scripts (local only, not committed)
 data/source_docs/
+
+# Claude Code project instructions (local only)
+Claude.md
