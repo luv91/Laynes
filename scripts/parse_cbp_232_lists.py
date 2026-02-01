@@ -83,7 +83,7 @@ ALUMINUM_DERIVATIVE_HEADINGS = {
 }
 
 # Directory containing CBP documents
-DOCS_DIR = Path(__file__).parent.parent / "docs" / "cbp_section232_official_lists"
+DOCS_DIR = Path(__file__).parent.parent / "data" / "source_docs" / "section232"
 OUTPUT_FILE = Path(__file__).parent.parent / "data" / "section_232_hts_codes.csv"
 
 

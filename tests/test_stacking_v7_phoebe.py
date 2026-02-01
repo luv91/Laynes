@@ -9,7 +9,7 @@ Tests the Phoebe-aligned changes to tariff stacking:
 - HTS-specific claim_codes from section_232_materials table
 - 301 codes come from section_301_inclusions table
 
-Test Cases (from docs/readme11.md):
+Test Cases (from readme11 v7 Phoebe-aligned stacking design doc):
 - TC-v7.0-001: Steel + Aluminum Claim (50/50 Split)
 - TC-v7.0-002: Copper + Aluminum Claim (50/50 Split)
 - TC-v7.0-003: No 232 Claimed (Residual Only)

@@ -68,3 +68,6 @@ docs/
 
 # Scripts pending deletion (orphaned/redundant)
 scripts/to_be_deleted/
+
+# Source documents for parse scripts (local only, not committed)
+data/source_docs/

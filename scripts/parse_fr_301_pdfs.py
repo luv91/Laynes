@@ -43,7 +43,7 @@ except ImportError:
 # CONFIGURATION
 # ============================================
 
-DOCS_DIR = Path(__file__).parent.parent / "docs" / "tariff_stacking_remaining_docs"
+DOCS_DIR = Path(__file__).parent.parent / "data" / "source_docs" / "section301"
 OUTPUT_DIR = Path(__file__).parent.parent / "data"
 
 # Section 301 List configurations
