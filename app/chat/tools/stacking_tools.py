@@ -34,7 +34,9 @@ v12.0 Update (Jan 2026) - IEEPA Code Corrections:
 import os
 import csv
 import json
-from datetime import date
+import hashlib
+import uuid
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -293,12 +295,16 @@ def get_models():
         ProgramCountryScope,
         ProgramSuppression,
         IngestionRun,
+        TariffCalculationLog,
     )
+    # v14.0: Use new ExclusionClaim system with 178 real exclusions
+    from app.models.section301 import ExclusionClaim
     return {
         "TariffProgram": TariffProgram,
         "Section301Inclusion": Section301Inclusion,
         "Section301Rate": Section301Rate,  # v10.0: Temporal 301 rates
         "Section301Exclusion": Section301Exclusion,
+        "ExclusionClaim": ExclusionClaim,  # v14.0: New exclusion system with 178 rows
         "Section232Material": Section232Material,
         "Section232Rate": Section232Rate,  # v13.0: Temporal 232 rates
         "IeepaRate": IeepaRate,  # v13.0: Temporal IEEPA rates
@@ -317,6 +323,7 @@ def get_models():
         "ProgramCountryScope": ProgramCountryScope,
         "ProgramSuppression": ProgramSuppression,
         "IngestionRun": IngestionRun,
+        "TariffCalculationLog": TariffCalculationLog,
     }
 
 
@@ -555,6 +562,124 @@ def get_disclaim_behavior(program_id: str) -> str:
         if program and hasattr(program, 'disclaim_behavior') and program.disclaim_behavior:
             return program.disclaim_behavior
         return 'none'
+
+
+# ============================================================================
+# v11.0: Semiconductor Predicate Evaluation
+# ============================================================================
+
+def evaluate_semiconductor_predicates(hts_8digit: str, technical_attributes: dict,
+                                       as_of_date=None) -> dict:
+    """
+    v11.0: Evaluate Section 232 semiconductor predicates per CSMS #67400472.
+
+    Checks if the product's technical attributes (TPP, DRAM bandwidth) meet
+    the thresholds defined in section_232_predicates. Uses group-based logic:
+    predicates in the same group must ALL pass (AND), different groups are
+    alternatives (OR).
+
+    Args:
+        hts_8digit: 8-digit HTS code
+        technical_attributes: dict with keys like 'transistor_processing_power', 'dram_bandwidth'
+        as_of_date: date for temporal lookup (defaults to today)
+
+    Returns:
+        dict with keys:
+            predicate_evaluated: bool
+            predicate_passed: bool
+            claim_heading: str (9903.79.01 if passed, 9903.79.02 if failed)
+            duty_rate: float (0.25 if passed, 0.0 if failed)
+            matched_group: str or None
+            details: list of per-predicate results
+    """
+    from datetime import date as date_type
+    app = get_flask_app()
+    with app.app_context():
+        models = get_models()
+        Section232Predicate = models.get("Section232Predicate")
+        if not Section232Predicate:
+            return {"predicate_evaluated": False, "reason": "Section232Predicate model not available"}
+
+        check_date = as_of_date or date_type.today()
+
+        # Get all active predicates for semiconductor program
+        from sqlalchemy import or_
+        predicates = Section232Predicate.query.filter(
+            Section232Predicate.program_id == 'section_232_semiconductor',
+            Section232Predicate.effective_start <= check_date,
+            or_(
+                Section232Predicate.effective_end.is_(None),
+                Section232Predicate.effective_end > check_date
+            )
+        ).all()
+
+        if not predicates:
+            return {"predicate_evaluated": False, "reason": "No active predicates found"}
+
+        # Filter to predicates matching this HTS code
+        matching = [p for p in predicates if p.matches_hts(hts_8digit)]
+        if not matching:
+            return {"predicate_evaluated": False, "reason": f"No predicates match HTS {hts_8digit}"}
+
+        # Group predicates by predicate_group
+        groups = {}
+        for p in matching:
+            groups.setdefault(p.predicate_group, []).append(p)
+
+        # Evaluate each group: ALL predicates in a group must pass (AND)
+        # If ANY group passes, the overall result is True (OR between groups)
+        details = []
+        for group_name, group_preds in groups.items():
+            group_passed = True
+            for pred in group_preds:
+                attr_value = technical_attributes.get(pred.attribute_name)
+                if attr_value is None:
+                    # Missing attribute -> group fails
+                    group_passed = False
+                    details.append({
+                        "group": group_name,
+                        "attribute": pred.attribute_name,
+                        "supplied_value": None,
+                        "threshold_min": float(pred.threshold_min) if pred.threshold_min else None,
+                        "threshold_max": float(pred.threshold_max) if pred.threshold_max else None,
+                        "passed": False,
+                        "reason": "attribute not supplied"
+                    })
+                else:
+                    passed = pred.evaluate(float(attr_value))
+                    if not passed:
+                        group_passed = False
+                    details.append({
+                        "group": group_name,
+                        "attribute": pred.attribute_name,
+                        "supplied_value": float(attr_value),
+                        "threshold_min": float(pred.threshold_min) if pred.threshold_min else None,
+                        "threshold_max": float(pred.threshold_max) if pred.threshold_max else None,
+                        "passed": passed,
+                    })
+
+            if group_passed:
+                # This group passed — return claim heading at 25%
+                first_pred = group_preds[0]
+                return {
+                    "predicate_evaluated": True,
+                    "predicate_passed": True,
+                    "claim_heading": first_pred.claim_heading_if_true,
+                    "duty_rate": float(first_pred.rate_if_true),
+                    "matched_group": group_name,
+                    "details": details,
+                }
+
+        # No group passed — return alternative heading at 0%
+        first_pred = matching[0]
+        return {
+            "predicate_evaluated": True,
+            "predicate_passed": False,
+            "claim_heading": first_pred.heading_if_false,
+            "duty_rate": float(first_pred.rate_if_false),
+            "matched_group": None,
+            "details": details,
+        }
 
 
 # ============================================================================
@@ -943,7 +1068,7 @@ def get_applicable_programs(country: str, hts_code: str, import_date: Optional[s
 # ============================================================================
 
 @tool
-def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = None) -> str:
+def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = None, technical_attributes: str = None) -> str:
     """
     Check if an HTS code is included in a specific tariff program.
 
@@ -954,6 +1079,9 @@ def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = No
         program_id: The program to check (e.g., "section_301", "section_232_copper")
         hts_code: The 10-digit HTS code
         as_of_date: Optional date string (YYYY-MM-DD) for temporal lookup. Defaults to today.
+        technical_attributes: Optional JSON string with semiconductor technical attributes
+            (e.g., '{"transistor_processing_power": 15000, "dram_bandwidth": 4700}')
+            Used only for section_232_semiconductor predicate evaluation per CSMS #67400472.
 
     Returns:
         JSON with inclusion result, Chapter 99 code, duty rate, and source info
@@ -1078,7 +1206,7 @@ def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = No
                         as_of_date=lookup_date
                     )
                     if rate:
-                        return json.dumps({
+                        result_data = {
                             "included": True,
                             "program_id": program_id,
                             "hts_8digit": hts_8digit,
@@ -1090,7 +1218,30 @@ def check_program_inclusion(program_id: str, hts_code: str, as_of_date: str = No
                             "source_doc": rate.source_doc,
                             "effective_start": rate.effective_start.isoformat() if rate.effective_start else None,
                             "temporal_lookup": True,  # v13.0: Indicate temporal lookup
-                        })
+                        }
+
+                        # v11.0: Semiconductor predicate evaluation per CSMS #67400472
+                        if material == "semiconductor" and technical_attributes:
+                            try:
+                                attrs = json.loads(technical_attributes) if isinstance(technical_attributes, str) else technical_attributes
+                                pred_result = evaluate_semiconductor_predicates(
+                                    hts_8digit=hts_8digit,
+                                    technical_attributes=attrs,
+                                    as_of_date=lookup_date
+                                )
+                                result_data["predicate_evaluation"] = pred_result
+                                if pred_result.get("predicate_evaluated"):
+                                    # Override claim heading and rate based on predicate result
+                                    result_data["claim_code"] = pred_result["claim_heading"]
+                                    result_data["duty_rate"] = pred_result["duty_rate"]
+                                    result_data["predicate_passed"] = pred_result["predicate_passed"]
+                            except (json.JSONDecodeError, TypeError, ValueError):
+                                result_data["predicate_evaluation"] = {
+                                    "predicate_evaluated": False,
+                                    "reason": "Invalid technical_attributes format"
+                                }
+
+                        return json.dumps(result_data)
                 except Exception:
                     pass  # Fall through to static lookup
 
@@ -1161,9 +1312,12 @@ def check_program_exclusion(program_id: str, hts_code: str, product_description:
 
         # Look up potential exclusions
         if program.exclusion_table == "section_301_exclusions":
-            exclusions = Section301Exclusion.query.filter_by(hts_8digit=hts_8digit).all()
-
-            active_exclusions = [e for e in exclusions if e.is_active(check_date)]
+            # v14.0: Use new ExclusionClaim system with 178 real exclusions
+            ExclusionClaim = models["ExclusionClaim"]
+            active_exclusions = ExclusionClaim.find_exclusion_candidates(
+                hts_code=hts_code,  # Full HTS code for exact matching
+                entry_date=check_date
+            )
 
             if not active_exclusions:
                 return json.dumps({
@@ -1171,7 +1325,7 @@ def check_program_exclusion(program_id: str, hts_code: str, product_description:
                     "program_id": program_id,
                     "hts_8digit": hts_8digit,
                     "reason": "No active exclusions for this HTS code",
-                    "expired_exclusions": len(exclusions) - len(active_exclusions)
+                    "expired_exclusions": 0
                 })
 
             # Check each exclusion for semantic match
@@ -1182,11 +1336,11 @@ def check_program_exclusion(program_id: str, hts_code: str, product_description:
 
             product_lower = product_description.lower()
             for exc in active_exclusions:
-                exc_lower = exc.description.lower()
+                exc_text = (exc.description_scope_text or "").lower()
 
                 # Simple keyword matching (replace with LLM semantic match in production)
-                common_words = set(product_lower.split()) & set(exc_lower.split())
-                confidence = len(common_words) / max(len(exc_lower.split()), 1)
+                common_words = set(product_lower.split()) & set(exc_text.split())
+                confidence = len(common_words) / max(len(exc_text.split()), 1)
 
                 if confidence > best_confidence:
                     best_confidence = confidence
@@ -1197,12 +1351,12 @@ def check_program_exclusion(program_id: str, hts_code: str, product_description:
                     "excluded": True,
                     "program_id": program_id,
                     "hts_8digit": hts_8digit,
-                    "exclusion_id": best_match.id,
-                    "exclusion_description": best_match.description,
+                    "exclusion_id": best_match.exclusion_id,
+                    "exclusion_description": best_match.description_scope_text,
                     "match_confidence": round(best_confidence, 2),
-                    "valid_until": best_match.extended_to.isoformat() if best_match.extended_to else best_match.original_expiry.isoformat() if best_match.original_expiry else None,
-                    "source_doc": best_match.exclusion_doc,
-                    "source_page": best_match.source_page,
+                    "valid_until": best_match.effective_end.isoformat() if best_match.effective_end else None,
+                    "source_doc": f"Chapter 99 Note {best_match.note_bucket}",
+                    "claim_heading": best_match.claim_ch99_heading,
                     "note": "Product description matches exclusion criteria"
                 })
 
@@ -1576,6 +1730,27 @@ def get_program_output(program_id: str, action: str, variant: Optional[str] = No
 
 
 # ============================================================================
+# v11.0: Audit Trail — Replay Key Helper
+# ============================================================================
+
+def compute_replay_key(hts_code, country, as_of_date, materials=None,
+                       technical_attributes=None, source_docs=None):
+    """Deterministic hash of calculation inputs + source provenance.
+
+    Same inputs + same source docs = same replay_key, enabling exact
+    reproduction of any calculation for PSC/audit defense.
+    """
+    canonical = f"{hts_code}|{country}|{as_of_date}"
+    if materials:
+        canonical += f"|mat:{json.dumps(materials, sort_keys=True)}"
+    if technical_attributes:
+        canonical += f"|attr:{json.dumps(technical_attributes, sort_keys=True)}"
+    if source_docs:
+        canonical += f"|src:{','.join(sorted(source_docs))}"
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+# ============================================================================
 # Tool 7: Calculate Duties (Phase 6.5 Updated - IEEPA Unstacking)
 # ============================================================================
 
@@ -1875,6 +2050,69 @@ def calculate_duties(
                 "rate_sources": rate_sources,
                 "rates_as_of": check_date.isoformat(),
             }
+
+        # v11.0: Audit trail — compute replay_key and persist calculation log
+        try:
+            # Collect source_docs from breakdown items
+            source_docs_list = list({
+                item.get("rate_source", "")
+                for item in breakdown
+                if item.get("rate_source")
+            })
+            # Collect program names applied
+            programs_list = list({
+                item.get("program", "")
+                for item in breakdown
+                if item.get("action") not in ("disclaim", "skip") and item.get("program")
+            })
+            # Parse materials if provided
+            materials_obj = None
+            if materials:
+                try:
+                    materials_obj = json.loads(materials) if isinstance(materials, str) else materials
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            replay_key = compute_replay_key(
+                hts_code=hts_code or "",
+                country=country or "",
+                as_of_date=check_date.isoformat() if check_date else "",
+                materials=materials_obj,
+                source_docs=source_docs_list,
+            )
+
+            # Add to result for downstream consumers
+            result["replay_key"] = replay_key
+            result["source_docs_used"] = source_docs_list
+
+            # Fire-and-forget: persist to tariff_calculation_log
+            try:
+                app = get_flask_app()
+                with app.app_context():
+                    from app.web.db import db as flask_db
+                    models = get_models()
+                    TariffCalculationLog = models["TariffCalculationLog"]
+
+                    log_entry = TariffCalculationLog(
+                        id=str(uuid.uuid4()),
+                        hts_code=hts_code or "",
+                        country_of_origin=country or "",
+                        as_of_date=check_date,
+                        product_value=product_value,
+                        materials_json=materials_obj,
+                        replay_key=replay_key,
+                        calculation_result=result,
+                        programs_applied=programs_list,
+                        total_duty_rate=result.get("total_duty_percent"),
+                        source_docs_used=source_docs_list,
+                        engine_version="v11.0",
+                    )
+                    flask_db.session.add(log_entry)
+                    flask_db.session.commit()
+            except Exception:
+                pass  # Fire-and-forget — never block calculation on logging failure
+        except Exception:
+            pass  # Replay key computation failed — don't block result
 
         return json.dumps(result)
 
