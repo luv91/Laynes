@@ -358,6 +358,187 @@ class Section232Rate(BaseModel):
         ).order_by(cls.effective_start.desc()).first()
 
 
+class Section232Predicate(BaseModel):
+    """
+    v11.0: Attribute-based predicates for Section 232 semiconductor duties.
+
+    Per CBP CSMS #67400472, semiconductor 232 duties (25%) only apply when
+    technical attributes meet specific thresholds. Two predicate types:
+
+    1. TPP (Transistor Processing Power): Measured in billions of transistors
+       per chip. If TPP >= threshold → 25% duty (9903.79.01)
+    2. DRAM Bandwidth: Measured in GB/s. If bandwidth >= threshold → 25% duty
+
+    If a predicate FAILS (product doesn't meet threshold), the product files
+    under alternative 0% headings (e.g., 9903.79.02) per CSMS guidance.
+
+    If no technical_attributes are supplied by the user, the engine defaults
+    to the 25% claim heading (conservative/protective approach).
+
+    Each row represents one attribute threshold for a set of HTS codes.
+    Multiple predicates can apply to the same HTS code (e.g., both TPP
+    and DRAM bandwidth thresholds for memory chips).
+
+    Query pattern:
+      SELECT * FROM section_232_predicates
+      WHERE program_id = 'section_232_semiconductor'
+        AND effective_start <= as_of_date
+        AND (effective_end IS NULL OR effective_end > as_of_date)
+        AND (hts_scope LIKE '%' || hts8 || '%' OR hts_scope = 'ALL')
+    """
+    __tablename__ = "section_232_predicates"
+    __table_args__ = (
+        UniqueConstraint('program_id', 'predicate_group', 'attribute_name', 'hts_scope', 'effective_start',
+                        name='uq_232_predicate'),
+        db.Index('idx_232_predicates_program', 'program_id', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Program scope
+    program_id = db.Column(db.String(64), nullable=False, index=True)  # 'section_232_semiconductor'
+    hts_scope = db.Column(db.Text, nullable=False)  # Comma-separated HTS prefixes: '8471,8473,8541,8542'
+
+    # Predicate grouping: predicates in same group must ALL pass (AND logic).
+    # Different groups are alternatives (OR logic between groups).
+    # e.g., "range_1" = TPP + DRAM range 1, "range_2" = TPP + DRAM range 2
+    predicate_group = db.Column(db.String(64), nullable=False, default='default')
+
+    # Attribute definition
+    attribute_name = db.Column(db.String(64), nullable=False)  # 'transistor_processing_power', 'dram_bandwidth'
+    attribute_unit = db.Column(db.String(32), nullable=True)  # 'billion_transistors', 'gbps'
+    threshold_min = db.Column(db.Numeric(20, 6), nullable=True)  # Lower bound (inclusive)
+    threshold_max = db.Column(db.Numeric(20, 6), nullable=True)  # Upper bound (inclusive), NULL = no upper limit
+
+    # Headings based on predicate result
+    claim_heading_if_true = db.Column(db.String(16), nullable=False)  # 9903.79.01 (25% duty)
+    rate_if_true = db.Column(db.Numeric(5, 4), nullable=False)  # 0.25
+    heading_if_false = db.Column(db.String(16), nullable=False)  # 9903.79.02 (0% duty)
+    rate_if_false = db.Column(db.Numeric(5, 4), nullable=False, default=0)  # 0.00
+
+    # Temporal validity
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=True)
+
+    # Audit trail
+    source_doc = db.Column(db.String(256), nullable=True)
+    source_doc_id = db.Column(db.Integer, db.ForeignKey('source_documents.id'), nullable=True)
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), nullable=True)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if predicate is active as of a given date."""
+        check_date = as_of_date or date.today()
+        if self.effective_end:
+            return self.effective_start <= check_date < self.effective_end
+        return self.effective_start <= check_date
+
+    def matches_hts(self, hts_8digit: str) -> bool:
+        """Check if an HTS code falls within this predicate's scope."""
+        if not self.hts_scope or self.hts_scope == 'ALL':
+            return True
+        prefixes = [p.strip() for p in self.hts_scope.split(',')]
+        return any(hts_8digit.startswith(p) for p in prefixes)
+
+    def evaluate(self, attribute_value: float) -> bool:
+        """
+        Evaluate whether the supplied attribute value meets the threshold.
+
+        Uses strict inequality per CSMS language ("greater than X and less than Y"):
+        Returns True if threshold_min < value < threshold_max.
+        If threshold_max is NULL, only checks > threshold_min.
+        If threshold_min is NULL, only checks < threshold_max.
+        """
+        if self.threshold_min is not None and attribute_value <= float(self.threshold_min):
+            return False
+        if self.threshold_max is not None and attribute_value >= float(self.threshold_max):
+            return False
+        return True
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "program_id": self.program_id,
+            "hts_scope": self.hts_scope,
+            "predicate_group": self.predicate_group,
+            "attribute_name": self.attribute_name,
+            "attribute_unit": self.attribute_unit,
+            "threshold_min": float(self.threshold_min) if self.threshold_min is not None else None,
+            "threshold_max": float(self.threshold_max) if self.threshold_max is not None else None,
+            "claim_heading_if_true": self.claim_heading_if_true,
+            "rate_if_true": float(self.rate_if_true) if self.rate_if_true is not None else None,
+            "heading_if_false": self.heading_if_false,
+            "rate_if_false": float(self.rate_if_false) if self.rate_if_false is not None else None,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "source_doc": self.source_doc,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_active": self.is_active(),
+        }
+
+    @classmethod
+    def get_predicates_for_hts(cls, program_id: str, hts_8digit: str,
+                                as_of_date: date) -> List["Section232Predicate"]:
+        """
+        Get all active predicates for a given program and HTS code.
+
+        Returns predicates whose hts_scope contains a prefix matching the HTS code.
+        """
+        from sqlalchemy import or_
+
+        all_active = cls.query.filter(
+            cls.program_id == program_id,
+            cls.effective_start <= as_of_date,
+            or_(cls.effective_end.is_(None), cls.effective_end > as_of_date)
+        ).all()
+
+        return [p for p in all_active if p.matches_hts(hts_8digit)]
+
+
+class TariffCalculationLog(db.Model):
+    """
+    v11.0: Append-only audit log for tariff calculations.
+
+    Every call to calculate_duties() logs:
+    - Inputs: HTS, country, date, materials, technical attributes
+    - replay_key: SHA-256 hash of canonical(inputs + source_docs) for reproducibility
+    - Output: Full calculation result snapshot
+    - Provenance: List of source_doc strings used in the calculation
+
+    Separate from TariffAuditLog (which tracks data changes like INSERT/UPDATE).
+    This tracks calculations for PSC/audit defense per V2 design Section 8.
+    """
+    __tablename__ = "tariff_calculation_log"
+
+    id = db.Column(db.String(36), primary_key=True)
+
+    # Inputs
+    hts_code = db.Column(db.String(12), nullable=False, index=True)
+    country_of_origin = db.Column(db.String(64), nullable=False)
+    as_of_date = db.Column(db.Date, nullable=False, index=True)
+    product_value = db.Column(db.Numeric(14, 2), nullable=True)
+    materials_json = db.Column(db.JSON, nullable=True)
+    technical_attributes_json = db.Column(db.JSON, nullable=True)
+
+    # Replay key = sha256(canonical(inputs) + sorted(source_docs))
+    replay_key = db.Column(db.String(64), nullable=False, unique=True, index=True)
+
+    # Output snapshot
+    calculation_result = db.Column(db.JSON, nullable=False)
+    programs_applied = db.Column(db.JSON, nullable=True)
+    total_duty_rate = db.Column(db.Numeric(8, 4), nullable=True)
+
+    # Provenance
+    source_docs_used = db.Column(db.JSON, nullable=True)
+
+    # Metadata
+    calculated_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    calculated_by = db.Column(db.String(100), default='stacking_engine')
+    engine_version = db.Column(db.String(20), nullable=True)
+
+
 class IeepaRate(BaseModel):
     """
     v10.0: Temporal IEEPA rates for time-series tracking.
