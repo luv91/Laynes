@@ -191,6 +191,12 @@ class Section301Rate(BaseModel):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.String(64), nullable=True)  # "system", "human"
 
+    # Dataset provenance + archiving (added 2026-02-07)
+    # dataset_tag: "FR_2018" (old PDFs), "USITC_CH99_CURRENT" (current Chapter 99)
+    dataset_tag = db.Column(db.String(32), nullable=True, index=True)
+    is_archived = db.Column(db.Boolean, default=False, nullable=True, index=True)  # nullable for migration
+    archived_at = db.Column(db.DateTime, nullable=True)
+
     def is_active(self, as_of_date: Optional[date] = None) -> bool:
         """Check if rate is active as of a given date."""
         check_date = as_of_date or date.today()
@@ -219,6 +225,9 @@ class Section301Rate(BaseModel):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "created_by": self.created_by,
             "is_active": self.is_active(),
+            "dataset_tag": self.dataset_tag,
+            "is_archived": self.is_archived,
+            "archived_at": self.archived_at.isoformat() if self.archived_at else None,
         }
 
     @classmethod
@@ -226,27 +235,46 @@ class Section301Rate(BaseModel):
         """
         Get the applicable rate for an HTS code as of a specific date.
 
-        Uses role-based precedence:
-        1. First check for active EXCLUSION within its time window
-        2. If exclusion exists and is active → return it (0% duty)
-        3. If no active exclusion → return most recent IMPOSE code
+        Uses dataset + role-based precedence:
+        1. First search ACTIVE datasets (is_archived=False or NULL)
+        2. If no active match, fallback to ARCHIVED datasets
+        3. Within each tier, exclusions take precedence over impose codes
 
         Per CBP guidance: When filing exclusion code, do NOT file base duty code.
         Exclusions (role='exclude') always take precedence over impose codes.
         """
         from sqlalchemy import or_, case
 
-        return cls.query.filter(
+        # Base temporal filter
+        temporal_filter = [
             cls.hts_8digit == hts_8digit,
             cls.effective_start <= as_of_date,
             or_(
                 cls.effective_end.is_(None),
                 cls.effective_end > as_of_date
             )
+        ]
+
+        # 1) Try active datasets first (is_archived=False or NULL)
+        result = cls.query.filter(
+            *temporal_filter,
+            or_(cls.is_archived == False, cls.is_archived.is_(None))
         ).order_by(
             # Priority: exclusions first (0), impose second (1)
             case((cls.role == 'exclude', 0), else_=1),
             # Within same priority, most recent first
+            cls.effective_start.desc()
+        ).first()
+
+        if result:
+            return result
+
+        # 2) Fallback to archived datasets
+        return cls.query.filter(
+            *temporal_filter,
+            cls.is_archived == True
+        ).order_by(
+            case((cls.role == 'exclude', 0), else_=1),
             cls.effective_start.desc()
         ).first()
 

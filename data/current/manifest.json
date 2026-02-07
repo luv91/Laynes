@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-30T03:38:13.968150",
+  "generated_at": "2026-02-07T23:19:42.363794",
   "source_version": "sync_20260126_020419",
   "files": {
     "section_301_rates.csv": {
@@ -99,6 +99,30 @@
         "20(www)": 14
       },
       "total_exclusions": 178
+    },
+    "section_301_inclusions.csv": {
+      "row_count": 11371,
+      "sha256": "5563a197330a623c8996298273d295cd5b69e5264c49677e128800e572cf2e15",
+      "columns": [
+        "hts_8digit",
+        "hts_10digit",
+        "chapter_99_code",
+        "duty_rate",
+        "list_name",
+        "effective_start",
+        "effective_end",
+        "source_doc"
+      ],
+      "exported_at": "2026-02-07T23:19:42.363236",
+      "source": "USITC_HTS_Chapter99",
+      "pdf_sha256": "951d37a5f9446aace6263a87f192151e7b315c3bf39315a5c0d7bc97ee48341a",
+      "counts_by_list": {
+        "list_1": 860,
+        "list_2": 287,
+        "list_3": 6187,
+        "list_4A": 4037
+      },
+      "total_inclusions": 11371
     }
   }
 }

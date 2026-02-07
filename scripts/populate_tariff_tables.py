@@ -1363,31 +1363,46 @@ def populate_section_232_temporal(app, seed_if_empty=False):
     from decimal import Decimal
 
     # Historical Section 232 rate periods from Presidential Proclamations
+    # Official sources: CBP CSMS guidance + Federal Register proclamations
     SECTION_232_HISTORY = [
         # Steel - Original Proclamation 9705 (March 23, 2018)
         {'material': 'steel', 'rate': Decimal('0.25'),
          'start': date(2018, 3, 23), 'end': date(2025, 3, 11),
          'source_doc': 'Proclamation 9705 (83 FR 11625)'},
-        # Steel - Proclamation 10896 doubled rate (March 12, 2025)
+        # Steel - Proclamation 10896 reset to 25% (March 12, 2025)
+        # CBP CSMS #64348411 confirms 25% effective Mar 12, 2025
+        {'material': 'steel', 'rate': Decimal('0.25'),
+         'start': date(2025, 3, 12), 'end': date(2025, 6, 3),
+         'source_doc': 'Proclamation 10896 (CBP CSMS #64348411)'},
+        # Steel - Proclamation 10947 increased to 50% (June 4, 2025)
         {'material': 'steel', 'rate': Decimal('0.50'),
-         'start': date(2025, 3, 12), 'end': None,
-         'source_doc': 'Proclamation 10896 (90 FR 40326)'},
+         'start': date(2025, 6, 4), 'end': None,
+         'source_doc': 'Proclamation 10947 (90 FR 25209)'},
         # Aluminum - Original Proclamation 9704 (March 23, 2018)
         {'material': 'aluminum', 'rate': Decimal('0.10'),
          'start': date(2018, 3, 23), 'end': date(2025, 3, 11),
          'source_doc': 'Proclamation 9704 (83 FR 11619)'},
-        # Aluminum - Proclamation 10896 increased rate (March 12, 2025)
+        # Aluminum - Proclamation 10895 reset to 25% (March 12, 2025)
+        # CBP CSMS #64384496 confirms 25% effective Mar 12, 2025
+        {'material': 'aluminum', 'rate': Decimal('0.25'),
+         'start': date(2025, 3, 12), 'end': date(2025, 6, 3),
+         'source_doc': 'Proclamation 10895 (CBP CSMS #64384496)'},
+        # Aluminum - Proclamation 10947 increased to 50% (June 4, 2025)
         {'material': 'aluminum', 'rate': Decimal('0.50'),
-         'start': date(2025, 3, 12), 'end': None,
-         'source_doc': 'Proclamation 10896 (90 FR 40326)'},
-        # Copper - Added by Proclamation 10896 (March 12, 2025)
+         'start': date(2025, 6, 4), 'end': None,
+         'source_doc': 'Proclamation 10947 (90 FR 25209)'},
+        # Copper - Added by Proclamation 10962 (Aug 2025)
         {'material': 'copper', 'rate': Decimal('0.50'),
          'start': date(2025, 3, 12), 'end': None,
-         'source_doc': 'Proclamation 10896 - Section 232 Copper Investigation'},
+         'source_doc': 'Proclamation 10962 - Section 232 Copper'},
         # Auto Parts - Proclamation 10908 (May 3, 2025)
         {'material': 'auto', 'rate': Decimal('0.25'),
          'start': date(2025, 5, 3), 'end': None,
          'source_doc': 'Proclamation 10908 (90 FR 14705) - Section 232 Auto Parts'},
+        # Semiconductor - CBP CSMS #67400472 (Jan 15, 2026)
+        {'material': 'semiconductor', 'rate': Decimal('0.25'),
+         'start': date(2026, 1, 15), 'end': None,
+         'source_doc': 'CBP CSMS #67400472 - Section 232 Semiconductor'},
     ]
 
     with app.app_context():
@@ -1428,6 +1443,70 @@ def populate_section_232_temporal(app, seed_if_empty=False):
 
         db.session.commit()
         print(f"  Created {rows_created} temporal rows in section_232_rates")
+
+
+def populate_section_232_predicates(app, seed_if_empty=False):
+    """v11.0: Populate Section 232 semiconductor predicates from CSMS #67400472.
+
+    Inserts threshold-based predicates for semiconductor 232 evaluation:
+    - Range 1: TPP 14,000-17,500 AND DRAM bandwidth 4,500-5,000 GB/s
+    - Range 2: TPP 20,800-21,100 AND DRAM bandwidth 5,800-6,200 GB/s
+
+    If predicate passes → 9903.79.01 at 25%
+    If predicate fails  → 9903.79.02 at 0%
+    """
+    with app.app_context():
+        from app.web.db.database import db
+        from app.web.db.models.tariff_tables import Section232Predicate
+
+        existing = Section232Predicate.query.count()
+        if seed_if_empty and existing > 0:
+            print(f"  Section 232 predicates: {existing} rows exist, skipping (seed-if-empty)")
+            return
+
+        if existing > 0:
+            Section232Predicate.query.delete()
+            db.session.commit()
+            print(f"  Cleared {existing} existing predicate rows")
+
+        SOURCE_DOC = "CBP CSMS #67400472 - Section 232 Semiconductor"
+        PREDICATES = [
+            # Range 1
+            {"predicate_group": "range_1", "attribute_name": "transistor_processing_power",
+             "attribute_unit": "TOPS", "threshold_min": Decimal("14000"), "threshold_max": Decimal("17500")},
+            {"predicate_group": "range_1", "attribute_name": "dram_bandwidth",
+             "attribute_unit": "GB/s", "threshold_min": Decimal("4500"), "threshold_max": Decimal("5000")},
+            # Range 2
+            {"predicate_group": "range_2", "attribute_name": "transistor_processing_power",
+             "attribute_unit": "TOPS", "threshold_min": Decimal("20800"), "threshold_max": Decimal("21100")},
+            {"predicate_group": "range_2", "attribute_name": "dram_bandwidth",
+             "attribute_unit": "GB/s", "threshold_min": Decimal("5800"), "threshold_max": Decimal("6200")},
+        ]
+
+        rows_created = 0
+        for pred_data in PREDICATES:
+            pred = Section232Predicate(
+                program_id="section_232_semiconductor",
+                hts_scope="8471,8473",
+                predicate_group=pred_data["predicate_group"],
+                attribute_name=pred_data["attribute_name"],
+                attribute_unit=pred_data["attribute_unit"],
+                threshold_min=pred_data["threshold_min"],
+                threshold_max=pred_data["threshold_max"],
+                claim_heading_if_true="9903.79.01",
+                rate_if_true=Decimal("0.25"),
+                heading_if_false="9903.79.02",
+                rate_if_false=Decimal("0"),
+                effective_start=date(2026, 1, 15),
+                effective_end=None,
+                source_doc=SOURCE_DOC,
+                created_by="populate_tariff_tables.py v11.0",
+            )
+            db.session.add(pred)
+            rows_created += 1
+
+        db.session.commit()
+        print(f"  Created {rows_created} Section 232 semiconductor predicates")
 
 
 def populate_ieepa_temporal(app, seed_if_empty=False):
@@ -1733,6 +1812,7 @@ def main():
     # v13.0: Temporal rate tables (must run AFTER section_232_materials is populated)
     # v17.0: Pass seed_if_empty to preserve runtime data
     populate_section_232_temporal(app, seed_if_empty=seed_if_empty)
+    populate_section_232_predicates(app, seed_if_empty=seed_if_empty)  # v11.0: Semiconductor predicates
     populate_ieepa_temporal(app, seed_if_empty=seed_if_empty)
 
     # v15.0: Section 301 temporal (after CSV import)
