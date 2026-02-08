@@ -1456,6 +1456,7 @@ def populate_section_232_predicates(app, seed_if_empty=False):
     If predicate fails  → 9903.79.02 at 0%
     """
     with app.app_context():
+        from decimal import Decimal
         from app.web.db import db
         from app.web.db.models.tariff_tables import Section232Predicate
 
