@@ -922,8 +922,12 @@ class IeepaAnnexIIExclusion(BaseModel):
     def is_active(self, as_of_date: Optional[date] = None) -> bool:
         """Check if exclusion is active as of a given date."""
         check_date = as_of_date or date.today()
-        if self.expiration_date:
-            return self.expiration_date > check_date
+        # Must be on or after effective_date
+        if self.effective_date and check_date < self.effective_date:
+            return False
+        # Must be before expiration_date (if set)
+        if self.expiration_date and check_date >= self.expiration_date:
+            return False
         return True
 
     def as_dict(self) -> Dict[str, Any]:
