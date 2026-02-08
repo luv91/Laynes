@@ -163,12 +163,20 @@ def get_ieepa_rate_temporal(program_type: str, country_code: str, as_of_date=Non
 # ============================================================================
 # These HTS prefixes are EXEMPT from IEEPA Reciprocal tariffs
 # Load from CSV for data-driven updates
+#
+# v21.0 Update: Feature flag wrapper for DB-based energy check
+# - USE_DB_ENERGY_CHECK=true: Uses check_annex_ii_exclusion() with category filter
+# - USE_DB_ENERGY_CHECK=false (default): Uses legacy CSV/hardcoded implementation
+# ============================================================================
 
 _ANNEX_II_EXEMPTIONS_CACHE = None
 
 
-def load_annex_ii_exemptions():
-    """Load Annex II exemptions from CSV file."""
+def _legacy_load_annex_ii_exemptions():
+    """
+    ARCHIVED v21.0: Legacy implementation using CSV/hardcoded data.
+    Kept for backward compatibility when USE_DB_ENERGY_CHECK=false.
+    """
     global _ANNEX_II_EXEMPTIONS_CACHE
 
     if _ANNEX_II_EXEMPTIONS_CACHE is not None:
@@ -217,9 +225,10 @@ def load_annex_ii_exemptions():
     return exemptions
 
 
-def is_annex_ii_energy_exempt(hts_code: str) -> dict:
+def _legacy_is_annex_ii_energy_exempt(hts_code: str) -> dict:
     """
-    v12.0: Check if HTS code is an Annex II energy product.
+    ARCHIVED v21.0: Legacy implementation using CSV/hardcoded energy list.
+    Kept for backward compatibility when USE_DB_ENERGY_CHECK=false.
 
     Uses prefix matching - checks progressively shorter prefixes.
 
@@ -229,7 +238,7 @@ def is_annex_ii_energy_exempt(hts_code: str) -> dict:
     Returns:
         dict with 'exempt' flag and exemption details if found
     """
-    exemptions = load_annex_ii_exemptions()
+    exemptions = _legacy_load_annex_ii_exemptions()
     hts_clean = hts_code.replace('.', '')
 
     # Try progressively shorter prefixes (longest match wins)
@@ -246,6 +255,73 @@ def is_annex_ii_energy_exempt(hts_code: str) -> dict:
             }
 
     return {'exempt': False, 'hts_code': hts_code}
+
+
+def _is_annex_ii_energy_exempt_from_db(hts_code: str, import_date: Optional[str] = None) -> dict:
+    """
+    v21.0: DB-based implementation that reuses check_annex_ii_exclusion().
+
+    Checks if HTS code is in Annex II exclusion list with category='energy'.
+    This respects temporal validity (effective_date/expiration_date).
+
+    Args:
+        hts_code: The HTS code to check
+        import_date: Import date (YYYY-MM-DD) for temporal check. Uses today if None.
+
+    Returns:
+        dict with 'exempt' flag and exemption details if found
+    """
+    # Call the existing check_annex_ii_exclusion tool
+    # Note: check_annex_ii_exclusion is decorated with @tool, so we use .invoke()
+    result_json = check_annex_ii_exclusion.invoke({"hts_code": hts_code, "import_date": import_date})
+    result = json.loads(result_json)
+
+    if result.get("excluded") and result.get("category") == "energy":
+        return {
+            'exempt': True,
+            'hts_code': hts_code,
+            'matched_prefix': result.get("matched_prefix", ""),
+            'exemption_code': result.get("chapter_99_code", "9903.01.32"),
+            'description': result.get("description", ""),
+            'category': "energy",
+        }
+
+    return {'exempt': False, 'hts_code': hts_code}
+
+
+import logging
+
+_energy_check_logger = logging.getLogger(__name__)
+
+
+def is_annex_ii_energy_exempt(hts_code: str, import_date: Optional[str] = None) -> dict:
+    """
+    v21.0: Feature flag wrapper for Annex II energy exemption check.
+
+    Uses environment variable USE_DB_ENERGY_CHECK to select implementation:
+    - USE_DB_ENERGY_CHECK=true: Uses DB-based check via check_annex_ii_exclusion()
+    - USE_DB_ENERGY_CHECK=false (default): Uses legacy CSV/hardcoded implementation
+
+    Args:
+        hts_code: The HTS code to check
+        import_date: Import date (YYYY-MM-DD) for DB path. Ignored by legacy path.
+
+    Returns:
+        dict with 'exempt' flag and exemption details if found
+    """
+    use_db = os.getenv("USE_DB_ENERGY_CHECK", "false").lower() == "true"
+
+    if use_db:
+        # DB path: warn if import_date is None (date-aware behavior)
+        if import_date is None:
+            _energy_check_logger.warning(
+                "is_annex_ii_energy_exempt called with USE_DB_ENERGY_CHECK=true but import_date=None. "
+                "Falling back to legacy to prevent timeless behavior."
+            )
+            return _legacy_is_annex_ii_energy_exempt(hts_code)
+        return _is_annex_ii_energy_exempt_from_db(hts_code, import_date)
+    else:
+        return _legacy_is_annex_ii_energy_exempt(hts_code)
 
 
 # ============================================================================
@@ -2530,8 +2606,8 @@ def resolve_reciprocal_variant(
     standard_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'standard')
 
     # Priority 1: Check Annex II energy product exemption (v12.0)
-    # This uses the CSV/hardcoded list of energy products (propane, LPG, petroleum, etc.)
-    energy_exempt = is_annex_ii_energy_exempt(hts_code)
+    # v21.0: Now uses feature flag (USE_DB_ENERGY_CHECK) to switch between CSV/DB
+    energy_exempt = is_annex_ii_energy_exempt(hts_code, import_date)
     if energy_exempt.get('exempt'):
         return json.dumps({
             "variant": "annex_ii_exempt",

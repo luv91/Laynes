@@ -1759,6 +1759,237 @@ def populate_section_301_temporal(app, seed_if_empty=False):
         return imported
 
 
+# =============================================================================
+# v21.0: IEEPA Enhancements
+# =============================================================================
+
+# Mapping of full country names to ISO codes for IEEPA programs
+IEEPA_COUNTRY_TO_ISO = {
+    "China": "CN",
+    "Hong Kong": "HK",
+    "Macau": "MO",
+    "UK": "GB",
+    "United Kingdom": "GB",
+    "India": "IN",
+    "Japan": "JP",
+    "South Korea": "KR",
+    "Korea": "KR",
+    "Taiwan": "TW",
+    "Vietnam": "VN",
+}
+
+
+def deduplicate_ieepa_tariff_programs(app):
+    """
+    v21.0: Remove semantic duplicates from IEEPA tariff_programs.
+
+    The issue is that some IEEPA rows exist with both full country names
+    (e.g., "China", "Hong Kong") AND ISO codes (e.g., "CN", "HK").
+    This causes incorrect lookups and double-counting.
+
+    This function:
+    1. Identifies IEEPA rows with full country names that have ISO equivalents
+    2. Deletes the full-name rows (keeps ISO code rows)
+    3. Reports what was cleaned up
+
+    SCOPED TO IEEPA ONLY - does NOT touch 301/232 programs.
+    """
+    from sqlalchemy import text
+
+    with app.app_context():
+        print("\n=== v21.0: IEEPA Semantic Duplicate Cleanup ===")
+
+        # Step 1: Find IEEPA rows with full country names
+        full_name_rows = db.session.execute(text("""
+            SELECT id, program_id, country
+            FROM tariff_programs
+            WHERE program_id LIKE 'ieepa%'
+              AND country IN :full_names
+        """), {"full_names": tuple(IEEPA_COUNTRY_TO_ISO.keys())}).fetchall()
+
+        if not full_name_rows:
+            print("  No IEEPA semantic duplicates found. Database is clean.")
+            return 0
+
+        print(f"  Found {len(full_name_rows)} IEEPA rows with full country names to remove:")
+
+        # Step 2: For each full-name row, verify the ISO version exists before deleting
+        deleted_count = 0
+        for row in full_name_rows:
+            iso_code = IEEPA_COUNTRY_TO_ISO.get(row.country)
+            if not iso_code:
+                continue
+
+            # Check if ISO version exists
+            iso_exists = db.session.execute(text("""
+                SELECT COUNT(*) FROM tariff_programs
+                WHERE program_id = :program_id AND country = :iso_code
+            """), {"program_id": row.program_id, "iso_code": iso_code}).scalar()
+
+            if iso_exists:
+                # Safe to delete - ISO version exists
+                print(f"    Deleting: {row.program_id} / {row.country} (id={row.id}) - replaced by {iso_code}")
+                db.session.execute(text("""
+                    DELETE FROM tariff_programs WHERE id = :id
+                """), {"id": row.id})
+                deleted_count += 1
+            else:
+                # ISO version doesn't exist - update instead of delete
+                print(f"    Updating: {row.program_id} / {row.country} (id={row.id}) -> {iso_code}")
+                db.session.execute(text("""
+                    UPDATE tariff_programs SET country = :iso_code WHERE id = :id
+                """), {"id": row.id, "iso_code": iso_code})
+
+        db.session.commit()
+        print(f"  Cleaned up {deleted_count} semantic duplicates from IEEPA tariff_programs")
+
+        # Step 3: Verify no duplicates remain
+        remaining = db.session.execute(text("""
+            SELECT program_id, country, COUNT(*) as cnt
+            FROM tariff_programs
+            WHERE program_id LIKE 'ieepa%'
+            GROUP BY program_id, country
+            HAVING COUNT(*) > 1
+        """)).fetchall()
+
+        if remaining:
+            print(f"  WARNING: {len(remaining)} exact duplicates still exist!")
+            for r in remaining:
+                print(f"    {r.program_id} / {r.country}: {r.cnt} rows")
+        else:
+            print("  Verification passed: No IEEPA duplicates remain.")
+
+        return deleted_count
+
+
+def add_reciprocal_country(app, country_code: str, standard_rate=None):
+    """
+    v21.0: Add all 4 IEEPA reciprocal variants for a new country.
+
+    This function:
+    1. Gets the existing effective_start from current reciprocal rows (to avoid temporal misalignment)
+    2. Inserts all 4 required variants (standard, annex_ii_exempt, section_232_exempt, us_content_exempt)
+    3. Respects the unique constraint on ieepa_rates
+
+    Args:
+        app: Flask application
+        country_code: ISO 2-letter country code (e.g., "AU", "BR")
+        standard_rate: Rate for standard variant (default: uses existing rate from other countries)
+
+    Returns:
+        Number of rows inserted
+    """
+    from sqlalchemy import text
+    from decimal import Decimal
+
+    VARIANTS = [
+        {"variant": "standard", "chapter_99_code": "9903.01.25", "rate_key": "standard_rate"},
+        {"variant": "annex_ii_exempt", "chapter_99_code": "9903.01.32", "rate": Decimal("0.0000")},
+        {"variant": "section_232_exempt", "chapter_99_code": "9903.01.33", "rate": Decimal("0.0000")},
+        {"variant": "us_content_exempt", "chapter_99_code": "9903.01.34", "rate": Decimal("0.0000")},
+    ]
+
+    with app.app_context():
+        # Get existing effective_start to maintain temporal alignment
+        existing_start = db.session.execute(text("""
+            SELECT MIN(effective_start)
+            FROM ieepa_rates
+            WHERE program_type = 'reciprocal'
+        """)).scalar()
+
+        if existing_start is None:
+            print(f"  ERROR: No existing reciprocal rows found. Cannot determine effective_start.")
+            return 0
+
+        # Get existing standard rate if not provided
+        if standard_rate is None:
+            existing_rate = db.session.execute(text("""
+                SELECT duty_rate
+                FROM ieepa_rates
+                WHERE program_type = 'reciprocal' AND variant = 'standard'
+                LIMIT 1
+            """)).scalar()
+            standard_rate = existing_rate or Decimal("0.1000")
+
+        print(f"  Adding reciprocal variants for {country_code} (effective_start={existing_start}, rate={standard_rate})...")
+
+        inserted = 0
+        for v in VARIANTS:
+            rate = v.get("rate", standard_rate if v.get("rate_key") == "standard_rate" else Decimal("0.0000"))
+
+            # Check if already exists
+            existing = db.session.execute(text("""
+                SELECT id FROM ieepa_rates
+                WHERE program_type = 'reciprocal'
+                  AND country_code = :country_code
+                  AND chapter_99_code = :chapter_99_code
+                  AND effective_start = :effective_start
+            """), {
+                "country_code": country_code,
+                "chapter_99_code": v["chapter_99_code"],
+                "effective_start": existing_start
+            }).scalar()
+
+            if existing:
+                print(f"    Skipping {v['variant']} - already exists")
+                continue
+
+            db.session.execute(text("""
+                INSERT INTO ieepa_rates
+                    (program_type, country_code, chapter_99_code, duty_rate, variant,
+                     rate_type, effective_start, effective_end, source_doc, created_by)
+                VALUES
+                    ('reciprocal', :country_code, :chapter_99_code, :duty_rate, :variant,
+                     'ad_valorem', :effective_start, NULL, 'EO 14257 Annex I', 'populate_tariff_tables.py v21.0')
+            """), {
+                "country_code": country_code,
+                "chapter_99_code": v["chapter_99_code"],
+                "duty_rate": rate,
+                "variant": v["variant"],
+                "effective_start": existing_start
+            })
+            inserted += 1
+            print(f"    Added {v['variant']}: {v['chapter_99_code']} @ {rate}")
+
+        db.session.commit()
+        return inserted
+
+
+def verify_reciprocal_variants(app):
+    """
+    v21.0: Verify all reciprocal countries have all 4 required variants.
+
+    Returns dict with country_code -> list of missing variants
+    """
+    from sqlalchemy import text
+
+    REQUIRED_VARIANTS = {'standard', 'annex_ii_exempt', 'section_232_exempt', 'us_content_exempt'}
+
+    with app.app_context():
+        result = db.session.execute(text("""
+            SELECT country_code, array_agg(variant) as variants
+            FROM ieepa_rates
+            WHERE program_type = 'reciprocal'
+            GROUP BY country_code
+        """)).fetchall()
+
+        missing = {}
+        for row in result:
+            existing_variants = set(row.variants)
+            missing_variants = REQUIRED_VARIANTS - existing_variants
+            if missing_variants:
+                missing[row.country_code] = list(missing_variants)
+
+        if missing:
+            print(f"  WARNING: Countries with missing variants:")
+            for country, variants in missing.items():
+                print(f"    {country}: missing {variants}")
+        else:
+            print(f"  ✓ All {len(result)} reciprocal countries have all 4 required variants")
+
+        return missing
+
+
 def main():
     parser = argparse.ArgumentParser(description="Populate tariff tables with sample data")
     parser.add_argument("--reset", action="store_true", help="Drop and recreate tables")
@@ -1790,6 +2021,9 @@ def main():
 
     # Populate all tables (v4.0 and earlier)
     populate_tariff_programs(app)
+
+    # v21.0: Clean up IEEPA semantic duplicates (full names vs ISO codes)
+    deduplicate_ieepa_tariff_programs(app)
 
     # v17.0: Removed populate_section_301_from_csv() - now using unified temporal CSV
     # The temporal table (Section301Rate) is the single source of truth
