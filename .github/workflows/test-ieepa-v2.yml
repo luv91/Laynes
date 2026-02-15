@@ -1,0 +1,157 @@
+name: IEEPA V2 Tests
+
+# Run on push/PR to main, or manually
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/chat/tools/stacking_tools.py'
+      - 'app/web/db/models/tariff_tables.py'
+      - 'tests/test_ieepa_reciprocal_v2.py'
+      - 'scripts/ingest_ieepa_*.py'
+      - 'scripts/migrate_annex_ii_to_v2.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/chat/tools/stacking_tools.py'
+      - 'app/web/db/models/tariff_tables.py'
+      - 'tests/test_ieepa_reciprocal_v2.py'
+      - 'scripts/ingest_ieepa_*.py'
+      - 'scripts/migrate_annex_ii_to_v2.py'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  # Job 1: Run tests with V1 (legacy) engine
+  test-v1-engine:
+    name: Test V1 Engine (Legacy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: pipenv install --deploy
+
+      - name: Run V1 Engine Tests
+        env:
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_URL: /tmp/uploads
+          USE_IEEPA_V2_ENGINE: "false"
+        run: |
+          pipenv run pytest tests/ -v \
+            --ignore=tests/test_ieepa_reciprocal_v2.py \
+            -x --tb=short
+
+  # Job 2: Run tests with V2 engine
+  test-v2-engine:
+    name: Test V2 Engine (New)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: pipenv install --deploy
+
+      - name: Run V2 Golden Tests
+        env:
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_URL: /tmp/uploads
+          USE_IEEPA_V2_ENGINE: "true"
+        run: |
+          pipenv run pytest tests/test_ieepa_reciprocal_v2.py -v \
+            -x --tb=short
+
+  # Job 3: Run shadow comparison
+  shadow-compare:
+    name: Shadow Compare V1 vs V2
+    runs-on: ubuntu-latest
+    needs: [test-v1-engine, test-v2-engine]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: pipenv install --deploy
+
+      - name: Run Shadow Comparison
+        env:
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_URL: /tmp/uploads
+        run: |
+          pipenv run python scripts/shadow_compare_ieepa.py --verbose
+
+      - name: Check for Critical Discrepancies
+        env:
+          SQLALCHEMY_DATABASE_URI: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_URL: /tmp/uploads
+        run: |
+          # Run comparison and fail if USMCA/Column2 exempt countries differ
+          # These are critical exemptions that must match
+          pipenv run python -c "
+          import sys
+          import os
+          os.environ['SQLALCHEMY_DATABASE_URI'] = '${{ secrets.DATABASE_URL }}'
+          os.environ['SECRET_KEY'] = '${{ secrets.SECRET_KEY }}'
+          os.environ['OPENAI_API_KEY'] = '${{ secrets.OPENAI_API_KEY }}'
+          os.environ['UPLOAD_URL'] = '/tmp/uploads'
+
+          from scripts.shadow_compare_ieepa import shadow_compare
+
+          # Critical exemption countries
+          critical_cases = [
+              ('8481.80.50', 'CA'),  # Canada - USMCA
+              ('8481.80.50', 'MX'),  # Mexico - USMCA
+              ('2204.21.50', 'CU'),  # Cuba - Column 2
+          ]
+
+          failures = []
+          for hts, country in critical_cases:
+              result = shadow_compare(hts, country, '2026-02-10')
+              if not result['match']:
+                  if result['discrepancies'].get('duty_rate'):
+                      failures.append(f'{hts}/{country}: V1={result[\"v1_result\"].get(\"duty_rate\")}, V2={result[\"v2_result\"].get(\"duty_rate\")}')
+
+          if failures:
+              print('CRITICAL: Exemption discrepancies found!')
+              for f in failures:
+                  print(f'  {f}')
+              sys.exit(1)
+          else:
+              print('OK: All critical exemptions match between V1 and V2')
+          "

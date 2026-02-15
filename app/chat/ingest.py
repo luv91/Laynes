@@ -11,7 +11,7 @@ import os
 from typing import Callable, List, Optional
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.chat.vector_stores.pinecone import vector_store
+from app.chat.vector_stores.pinecone import _get_vector_store
 
 
 # ============================================================================
@@ -179,7 +179,7 @@ def ingest_pdf(
 
     # Upsert to Pinecone
     try:
-        vector_store.add_documents(chunks)
+        _get_vector_store().add_documents(chunks)
     except Exception as e:
         log(f"Error uploading to Pinecone: {str(e)}")
         raise

@@ -1,0 +1,454 @@
+LANES TARIFF COMPLIANCE CHATBOT - ARCHITECTURAL SUMMARY
+========================================================
+
+ANALYSIS DATE: February 10, 2026
+CODEBASE LOCATION: /sessions/hopeful-ecstatic-darwin/mnt/lanes/
+ANALYSIS TYPE: Comprehensive architectural deep dive (RESEARCH ONLY - NO MODIFICATIONS)
+
+FILES GENERATED:
+1. ARCHITECTURE_ANALYSIS.md (14 sections, ~5,000 lines)
+   - Complete system overview, component diagram, data flow
+   - Database schema with ~30 tables explained
+   - Stacking engine logic with detailed examples
+   - RAG pipeline, deployment, known limitations
+
+2. ARCHITECTURE_DETAILED_REFERENCE.md (10 sections, ~2,500 lines)
+   - Line-by-line code references with specific line numbers
+   - Duty calculation algorithm (Phase 6 & 6.5)
+   - Material composition evaluation
+   - LangGraph state machine implementation
+   - CSV file structures with row counts
+   - IEEPA hardcoded codes and feature flags
+
+3. This ARCHITECTURE_SUMMARY.txt
+   - Quick reference guide
+
+================================================================================
+SYSTEM OVERVIEW
+================================================================================
+
+WHAT IT DOES:
+Calculates U.S. import duties for products under Section 301, Section 232, and 
+IEEPA tariff programs. The engine is deterministic, data-driven, and fully 
+auditable for CBP compliance.
+
+CORE ARCHITECTURE:
+  Frontend (React.js)
+      ↓ POST /tariff/calculate
+  Flask Web App (tariff_views.py)
+      ↓
+  LangGraph State Machine (stacking_rag.py, 11 nodes)
+      ↓
+  50 Deterministic Tools (stacking_tools.py, 2,743 lines)
+      ↓
+  Temporal Database (SQLAlchemy, ~30 tables)
+      ↓
+  CSV Data Files (6 files in data/current/)
+
+KEY PRINCIPLE:
+All tariff rules live in DATABASE TABLES, not hardcoded in code.
+Non-technical users update rates by editing CSVs and running populate_tariff_tables.py
+
+================================================================================
+KEY COMPONENTS
+================================================================================
+
+1. STACKING ENGINE (app/chat/tools/stacking_tools.py - 2,743 lines)
+   - 50 tool functions
+   - Entry point: get_applicable_programs()
+   - Core logic: calculate_duties() (Phase 6 & 6.5)
+   - Material handling: check_material_composition()
+   - IEEPA logic: is_annex_ii_energy_exempt(), resolve_reciprocal_variant()
+
+2. DATA MODELS (app/web/db/models/tariff_tables.py - 1,811 lines)
+   - ~30 SQLAlchemy models
+   - Temporal tracking: Section301Rate, Section232Rate, IeepaRate
+   - Inclusions/Exclusions: Section301Inclusion, Section301Exclusion
+   - Country grouping: CountryGroup, CountryGroupMember
+   - Rate formulas: ProgramRate with "15% - MFN" support
+   - Audit: TariffCalculationLog, SourceVersion
+
+3. LANGGRAPH STATE MACHINE (app/chat/graphs/stacking_rag.py - 1,300+ lines)
+   - 11 sequential nodes
+   - Tool calling architecture
+   - Checkpointing for persistence
+   - State: StackingState TypedDict with 25 fields
+
+4. WEB API (app/web/views/tariff_views.py - 1,000+ lines)
+   - POST /tariff/calculate - Main endpoint
+   - Session management for material input
+   - Exclusion candidate lookup
+   - Data freshness reporting
+
+5. DATA INGESTION (scripts/populate_tariff_tables.py - 2,000+ lines)
+   - Loads CSV files into database
+   - v17.0: --seed-if-empty flag preserves runtime data
+   - Audit trail via IngestionRun table
+
+================================================================================
+DATA FLOW: USER QUERY → RESPONSE
+================================================================================
+
+REQUEST: POST /tariff/calculate
+{
+  "hts_code": "8544.42.9090",
+  "country": "China",
+  "product_value": 10000,
+  "materials": {"copper": 500, "steel": 2000}
+}
+
+PROCESSING:
+1. initialize_node()
+   └─ get_applicable_programs() → [section_301, ieepa_fentanyl, section_232, ...]
+
+2. check_materials_node()
+   └─ ensure_materials() → validate composition
+
+3. check_annex_ii_node()
+   └─ check_annex_ii_exclusion() → is product exempt from IEEPA?
+
+4. plan_slices_node()
+   └─ plan_entry_slices() → split into copper/steel/non-metal slices
+
+5. process_programs_loop_node() [FOR EACH PROGRAM]
+   ├─ check_program_inclusion() → is HTS in tariff program?
+   ├─ check_program_exclusion() → is product excluded?
+   ├─ check_material_composition() → material % meets threshold?
+   ├─ resolve_program_dependencies() → check if other programs apply?
+   └─ get_program_output() → get Chapter 99 code + rate
+
+6. build_entry_stacks_node()
+   └─ build_entry_stack() → create ACE entry per slice with full stack
+
+7. calculate_duties_node()
+   └─ calculate_duties() → compute total duty with unstacking logic
+
+8. generate_output_node()
+   └─ format response with entries[], total_duty{}
+
+RESPONSE: Application results
+{
+  "entries": [
+    {
+      "entry_number": 1,
+      "slice_type": "copper_slice",
+      "slice_value": 500,
+      "stack": [
+        {"program": "ieepa_fentanyl", "code": "9903.01.24", "rate": 0.10, "duty": 50},
+        {"program": "section_232", "code": "9903.81.30", "rate": 0.50, "duty": 250},
+        {"program": "ieepa_reciprocal", "code": "9903.01.33", "rate": 0.00, "duty": 0}
+      ],
+      "total_duty": 300
+    },
+    ...
+  ],
+  "total_duty": {
+    "total_amount": 3000,
+    "effective_rate": 0.30,
+    "unstacking": {
+      "232_content_value": 2500,
+      "remaining_value": 7500,
+      "reciprocal_applies_to": 7500
+    }
+  }
+}
+
+================================================================================
+CRITICAL CALCULATION LOGIC
+================================================================================
+
+PHASE 6: Content-Value-Based Duties
+  For Section 232:
+  - If material % >= min_threshold → CLAIM duty code
+  - Convert % to $ value: content_value = material% × product_value
+  - Duty = content_value × rate (NOT percentage of product)
+  - Fallback: If content unknown, use full product_value
+
+PHASE 6.5: IEEPA Unstacking
+  CBP Rule: Content subject to 232 is NOT subject to reciprocal IEEPA
+  - Start: remaining_value = product_value
+  - For each 232 material: subtract from remaining_value
+  - IEEPA Reciprocal uses remaining_value as base (not product_value)
+  - Example:
+    Product: $10,000
+    232 metals: $2,500
+    Remaining: $7,500
+    IEEPA Reciprocal: $7,500 × 10% = $750 (not $1,000)
+
+v5.0 Country-Specific Rates:
+  EU 15% Ceiling Formula:
+  - Query ProgramRate with country_group="EU"
+  - Check if formula field exists
+  - Parse formula: "15% - MFN"
+  - Look up MFN rate: get_mfn_base_rate(hts_code)
+  - Calculate: duty_rate = max(0, 0.15 - mfn_rate)
+  - Example: MFN = 0.05 → duty = 10%
+
+================================================================================
+DATABASE SCHEMA (30 TABLES)
+================================================================================
+
+MASTER TABLE:
+  TariffProgram - Defines what programs exist (19 rows)
+
+TEMPORAL RATE TABLES:
+  Section301Rate - Section 301 rates with effective dates (10,811 rows)
+  Section232Rate - Section 232 rates by material & country (1,638 rows)
+  IeepaRate - IEEPA rates by program type & country (46 rows)
+
+INCLUSION/EXCLUSION:
+  Section301Inclusion - Legacy static list (11,372 rows)
+  Section301Exclusion - Product exclusions (179 rows)
+
+MATERIALS:
+  Section232Material - Material claim/disclaim codes per HTS
+  Section232Predicate - Technical attribute rules for semiconductors
+
+OUTPUT CODES:
+  ProgramCode - Maps (program_id, action, variant, slice_type) → Chapter 99 code
+  DutyRule - Defines calculation type (additive/multiplicative) per program
+
+COUNTRY MANAGEMENT:
+  CountryGroup - EU, UK, CN, etc. (6 rows)
+  CountryGroupMember - Country → group mapping (50 rows)
+  CountryAlias - Normalize country variations (Macau → MO)
+  ProgramCountryScope - Data-driven country applicability
+
+RATE FORMULAS:
+  ProgramRate - Country-specific rates with formula support
+  HtsBaseRate - MFN Column 1 rates for formula calculations (15,263 rows)
+
+AUDIT:
+  SourceDocument - PDF metadata for rules
+  SourceVersion - Audit backbone for Section 301 (SCD Type 2)
+  TariffCalculationLog - Append-only audit log
+  IngestionRun - Tracks when data was loaded
+
+IEEPA:
+  IeepaAnnexIIExclusion - Energy product exemptions (48 rows)
+
+LEARNING:
+  ProductHistory - Historical product classifications
+  ExclusionClaim - Section 301 exclusion claims with workflow
+
+================================================================================
+DATA FILES (CSV-DRIVEN)
+================================================================================
+
+Location: data/current/
+
+section_301_rates.csv (10,811 rows)
+  ├─ hts_8digit, chapter_99_code, duty_rate
+  ├─ effective_start, effective_end
+  ├─ list_name, role ('impose'/'exclude')
+  ├─ dataset_tag, is_archived
+  └─ source_doc
+
+section_301_inclusions.csv (11,372 rows) [LEGACY - use section_301_rates]
+
+section_232_rates.csv (1,638 rows)
+  ├─ hts_8digit, material_type (copper/steel/aluminum)
+  ├─ country_code (NULL=global, GBR=UK exception)
+  ├─ duty_rate (0.50 global, 0.25 UK for steel/aluminum)
+  └─ effective_start, effective_end
+
+ieepa_rates.csv (46 rows)
+  ├─ program_type (ieepa_fentanyl, ieepa_reciprocal)
+  ├─ country_code, variant
+  ├─ chapter_99_code
+  └─ duty_rate
+
+exclusion_claims.csv (179 rows)
+  ├─ hts_8digit, product_description
+  ├─ exclusion_reason, status
+  └─ effective_start, effective_end
+
+annex_ii_exemptions.csv (48 rows)
+  ├─ hts_prefix
+  ├─ category (energy/pharmaceutical/chemical)
+  └─ exemption_code (9903.01.32)
+
+tariff_programs.csv (19 rows) [MASTER CONFIG]
+  ├─ program_id, program_name, country
+  ├─ check_type, condition_handler
+  ├─ filing_sequence, calculation_sequence
+  ├─ disclaim_behavior (required/omit/none)
+  └─ effective_date, expiration_date
+
+country_groups.csv (6 rows)
+  ├─ EU, UK, CN, etc.
+
+country_group_members.csv (50 rows)
+  ├─ Germany → EU, England → UK, etc.
+
+mfn_base_rates_8digit.csv (15,263 rows)
+  ├─ hts_8digit, mfn_rate
+  └─ Used in EU 15% formula calculations
+
+================================================================================
+HARDCODED VALUES (NOT IN DATABASE)
+================================================================================
+
+IEEPA_CODES (stacking_tools.py, lines 52-82):
+  {
+    'fentanyl': {'code': '9903.01.24', 'rate': 0.10},           # NOT 9903.01.25!
+    'reciprocal': {
+      'standard': {'code': '9903.01.25', 'rate': 0.10},
+      'annex_ii_exempt': {'code': '9903.01.32', 'rate': 0.00},
+      'section_232_exempt': {'code': '9903.01.33', 'rate': 0.00},
+      'us_content_exempt': {'code': '9903.01.34', 'rate': 0.00}
+    }
+  }
+
+Feature Flags:
+  USE_DB_ENERGY_CHECK (default: false)
+    ├─ true: Use database for Annex II check
+    └─ false: Use CSV + hardcoded list
+
+================================================================================
+KNOWN LIMITATIONS & GAPS
+================================================================================
+
+ARCHITECTURE LIMITATIONS:
+  ✗ In-memory sessions lost on restart
+  ✗ No temporal filter in RAG vector search
+  ✗ IEEPA codes still partially hardcoded
+  ✗ No HTS 6/4/2 fallback (Section 301 only HTS8/10)
+  ✗ Semantic exclusion match may fail for variations
+
+DATA QUALITY ISSUES:
+  ✗ Rates last updated 2026-02-07
+  ✗ Coverage gaps in Section 301 lists
+  ✗ Country alias completeness (50 entries)
+  ✗ Exclusion description relies on semantic match
+
+KNOWN BUGS:
+  ✗ Material value validation fails if sum > product_value (expected)
+  ✗ Null import_date defaults to today (may be unexpected for historical)
+  ✗ Annex II legacy CSV still used if USE_DB_ENERGY_CHECK=false
+  ✗ No variant fallback if variant not in ProgramCode table
+
+FEATURE GAPS:
+  ✗ Batch calculations (multiple HTS codes)
+  ✗ Rate history comparison (temporal queries exist but not exposed)
+  ✗ Exclusion approval workflow (UI missing)
+  ✗ Pre-defined material library (users must enter values)
+  ✗ Scenario modeling / "what-if" analysis
+
+================================================================================
+DEPLOYMENT
+================================================================================
+
+PLATFORM: Railway.app
+ENTRY POINT: wsgi.py → create_app() → Flask web server + Gunicorn
+
+DEPLOY COMMAND (railway.toml):
+  python scripts/populate_tariff_tables.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT
+
+DATA PERSISTENCE (v17.0):
+  --reset: Drop all tables, reload from CSV (first deploy)
+  --seed-if-empty: Only load if table < 10K rows (preserves runtime data)
+  Railway uses --seed-if-empty by default
+
+DATABASE:
+  Development: SQLite (lanes.db)
+  Production: PostgreSQL (Railway managed)
+  Auto-sync: SQLite → PostgreSQL enabled
+
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+
+BACKEND:
+  ✓ Flask 2.3+ (web framework)
+  ✓ SQLAlchemy 3.0+ (ORM)
+  ✓ LangChain 0.3+ (AI orchestration)
+  ✓ LangGraph 0.2+ (state machine)
+  ✓ OpenAI GPT-4 (LLM + embeddings)
+  ✓ Pinecone (vector store)
+  ✓ Celery 5.3+ (job queue)
+  ✓ Redis (message broker)
+
+FRONTEND:
+  ✓ React.js (SPA in /client/)
+  ✓ Served as static assets
+
+DEPLOYMENT:
+  ✓ Railway.app
+  ✓ Gunicorn WSGI server
+  ✓ PostgreSQL database
+  ✓ Docker containers
+
+================================================================================
+QUICK START
+================================================================================
+
+LOAD DATA:
+  python scripts/populate_tariff_tables.py --seed-if-empty
+
+TEST CALCULATION:
+  python scripts/test_stacking.py
+
+CHECK DATABASE:
+  sqlite3 lanes.db
+  SELECT COUNT(*) FROM section_301_rates;  # Should be ~10,811
+
+START WEB SERVER:
+  FLASK_APP=app.web FLASK_ENV=development flask run
+
+================================================================================
+VERSIONING
+================================================================================
+
+v1.0 (2025-07): Initial stacking engine
+v3.0 (2025-09): IEEPA unstacking
+v4.0 (2025-12): Entry slices, Annex II exclusions
+v5.0 (2025-12): Country-specific rates, EU 15% formula
+v6.0 (2025-12): Data-driven country scope
+v7.0 (2026-01): Phoebe-aligned ACE filing, disclaim_behavior
+v10.0 (2026-01): Temporal Section301Rate table
+v12.0 (2026-01): IEEPA code corrections
+v13.0 (2026-01): Temporal IEEPA rate fallback
+v17.0 (2026-01): DB as Source of Truth
+v21.0 (2026-02): Feature flag for Annex II check
+v22.0 (2026-02): Dataset versioning + archival
+
+================================================================================
+KEY FILES REFERENCE
+================================================================================
+
+CORE ENGINE:
+  app/chat/tools/stacking_tools.py (2,743 lines) ⭐
+    50 tool functions, tariff calculation logic
+
+  app/web/db/models/tariff_tables.py (1,811 lines) ⭐
+    ~30 SQLAlchemy models, temporal tracking
+
+GRAPH ORCHESTRATION:
+  app/chat/graphs/stacking_rag.py (1,300+ lines)
+    11 nodes, LangGraph state machine
+
+WEB API:
+  app/web/views/tariff_views.py (1,000+ lines)
+    POST /tariff/calculate endpoint
+
+DATA INGESTION:
+  scripts/populate_tariff_tables.py (2,000+ lines)
+    CSV → database loader
+
+DEPLOYMENT:
+  railway.toml
+  Procfile
+  requirements.txt
+  wsgi.py
+
+CONFIGURATION:
+  app/web/config/__init__.py
+  .env (environment variables)
+
+================================================================================
+
+For detailed information, see:
+  - ARCHITECTURE_ANALYSIS.md (14 sections, complete system overview)
+  - ARCHITECTURE_DETAILED_REFERENCE.md (10 sections, code references with line numbers)
+

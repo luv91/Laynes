@@ -1913,8 +1913,15 @@ def calculate_duties(
 
             # v5.0: Get country-specific rate if country and hts_code provided
             # v18.0: Skip for Section 301 - uses HTS-specific temporal rates (not country-specific)
+            # v21.1: Skip for ieepa_reciprocal when V2 engine is active — V2 resolver
+            #        already computed the correct rate; legacy ProgramRate would overwrite it.
             rate_source = None
-            if country and hts_code and action not in ["disclaim", "skip"] and program_id != "section_301":
+            v2_active = os.getenv('USE_IEEPA_V2_ENGINE', 'false').lower() == 'true'
+            skip_legacy_override = (
+                program_id == "section_301" or
+                (program_id == "ieepa_reciprocal" and v2_active)
+            )
+            if country and hts_code and action not in ["disclaim", "skip"] and not skip_legacy_override:
                 dynamic_rate, rate_source = get_rate_for_program(
                     program_id, country, hts_code, check_date
                 )
@@ -2564,6 +2571,388 @@ def check_annex_ii_exclusion(hts_code: str, import_date: Optional[str] = None) -
         })
 
 
+# =============================================================================
+# v21.0: IEEPA Reciprocal V2 Resolver (6-Phase Algorithm)
+# =============================================================================
+
+def resolve_ieepa_reciprocal_v2(
+    hts_digits: str,
+    country_code: Optional[str],  # Minor fix #1: Optional for baseline lookup
+    entry_date: date,
+    entered_value: float,
+    base_mfn_ad_val: Optional[float] = None,
+    load_date: Optional[date] = None,
+    vessel_final_mode: Optional[bool] = None,
+    us_content_pct: Optional[float] = None,
+    chapter98_claim: Optional[str] = None,
+    cbp_transshipment: bool = False,
+    is_donation: bool = False,
+    is_info_material: bool = False
+) -> dict:
+    """
+    v21.0: 6-Phase IEEPA Reciprocal Resolver.
+
+    Phase 1: Exception rules (data-driven, priority order)
+    Phase 2: Product exclusions (Annex II, agricultural)
+    Phase 3: Deal overrides (India, Argentina product-specific)
+    Phase 4: Country rate schedule lookup
+    Phase 5: MFN ceiling computation
+    Phase 6: Duty calculation and return
+
+    TEMPORAL SEMANTICS: All queries use effective_start <= date < effective_end
+
+    Args:
+        hts_digits: HTS code as digits only (e.g., '8471300100')
+        country_code: ISO 2-letter country code
+        entry_date: Date of entry
+        entered_value: Entry value in USD
+        base_mfn_ad_val: Base MFN ad valorem rate in percentage (e.g., 2.5 for 2.5%)
+        load_date: Date goods were loaded (for in-transit rules)
+        vessel_final_mode: Whether goods were on final mode vessel (for in-transit rules)
+        us_content_pct: US content percentage (0-100)
+        chapter98_claim: Chapter 98 claim type (e.g., 'TIB')
+        cbp_transshipment: CBP transshipment determination flag
+        is_donation: Donation flag
+        is_info_material: Information material flag (Berman Amendment)
+
+    Returns:
+        dict with variant, action, chapter_99_code, duty_rate, duty_amount, etc.
+    """
+    app = get_flask_app()
+    with app.app_context():
+        models = get_models()
+
+        # Import V2 models
+        from app.web.db.models.tariff_tables import (
+            IeepaReciprocalRateSchedule,
+            IeepaReciprocalProductExclusions,
+            IeepaReciprocalExceptionRules,
+            IeepaReciprocalDealOverrides
+        )
+
+        # Clean HTS digits
+        hts_clean = hts_digits.replace('.', '')
+
+        # =================================================================
+        # Phase 1: Exception Rules (priority order)
+        # =================================================================
+        exception_rules = IeepaReciprocalExceptionRules.get_active_rules_ordered(entry_date)
+
+        for rule in exception_rules:
+            matched = False
+
+            # Check country_set (if specified)
+            if rule.country_set:
+                if country_code not in rule.country_set:
+                    continue
+
+            # Check requires_flag conditions
+            if rule.requires_flag:
+                if rule.requires_flag == 'cbp_transshipment_determination':
+                    matched = cbp_transshipment
+                elif rule.requires_flag == 'is_232_subject':
+                    # Check if HTS is subject to Section 232
+                    is_232 = _check_section_232_subject(hts_clean, entry_date, models)
+                    matched = is_232
+                elif rule.requires_flag == 'is_donation':
+                    matched = is_donation
+                elif rule.requires_flag == 'tib_claim':
+                    matched = chapter98_claim == 'TIB'
+                elif rule.requires_flag == 'is_info_material':
+                    matched = is_info_material
+                elif rule.requires_flag == 'is_annex_ii_exempt':
+                    # Check via Phase 2 product exclusions
+                    excl = IeepaReciprocalProductExclusions.find_longest_match(hts_clean, entry_date)
+                    matched = excl is not None
+                elif rule.requires_flag == 'country_would_exceed_baseline':
+                    # Bug B fix: Check if country's rate exceeds baseline
+                    schedule = _get_country_schedule(country_code, entry_date, IeepaReciprocalRateSchedule)
+                    if schedule and schedule.regime_type in ('FIXED_RATE', 'MFN_CEILING'):
+                        matched = True  # Country would benefit from in-transit
+                    else:
+                        matched = False  # Skip rule for baseline countries
+                else:
+                    # Unknown flag - skip
+                    continue
+
+                if not matched:
+                    continue
+
+            # Check in-transit rules
+            if rule.transit_load_before:
+                if load_date is None or load_date >= rule.transit_load_before:
+                    continue
+                if rule.requires_vessel_final_mode and not vessel_final_mode:
+                    continue
+                # Bug A fix: Check transit_entry_start lower bound
+                if rule.transit_entry_start and entry_date < rule.transit_entry_start:
+                    continue
+                if rule.transit_enter_before and entry_date >= rule.transit_enter_before:
+                    continue
+                matched = True
+
+            # Check US content split
+            if rule.min_us_content_pct:
+                if us_content_pct is None or us_content_pct < float(rule.min_us_content_pct):
+                    continue
+                matched = True
+
+            # Check chapter 98 claim
+            if rule.requires_flag == 'chapter98_claim':
+                matched = chapter98_claim is not None
+
+            # If we haven't explicitly matched, but all conditions passed, we match
+            if not rule.requires_flag and not rule.transit_load_before and not rule.min_us_content_pct:
+                if rule.country_set:
+                    matched = country_code in rule.country_set
+                else:
+                    matched = True  # Universal rule
+
+            if matched:
+                # Exception rule matched - return result
+                ch99_code = rule.ch99_code
+
+                # Bug #3 fix: TIB uses country's code
+                if ch99_code is None:
+                    # Get code from country schedule
+                    schedule = _get_country_schedule(country_code, entry_date, IeepaReciprocalRateSchedule)
+                    if schedule:
+                        ch99_code = schedule.ch99_code or schedule.ch99_mfn_topup
+                    else:
+                        ch99_code = '9903.01.25'  # Fallback to baseline
+
+                rate_pct = float(rule.rate_override) if rule.rate_override else 0.0
+                value_basis = rule.value_basis
+
+                # Calculate duty based on value_basis
+                if value_basis == 'ZERO':
+                    duty_amount = 0.0
+                elif value_basis == 'FULL':
+                    duty_amount = entered_value * rate_pct / 100
+                elif value_basis == 'NON_US_CONTENT':
+                    foreign_value = entered_value * (1 - (us_content_pct or 0) / 100)
+                    duty_amount = foreign_value * rate_pct / 100
+                elif value_basis == 'REPAIR_VALUE':
+                    # For repairs, use entered_value as repair value
+                    duty_amount = entered_value * rate_pct / 100
+                else:
+                    duty_amount = 0.0
+
+                action = 'exempt' if rate_pct == 0 else 'paid'
+                if rule.rule_code == 'TIB_REPORT_ONLY':
+                    action = 'report_only'
+
+                return {
+                    'variant': rule.rule_code.lower(),
+                    'action': action,
+                    'chapter_99_code': ch99_code,
+                    'duty_rate': rate_pct,
+                    'duty_amount': duty_amount,
+                    'value_basis': value_basis,
+                    'reason': rule.description,
+                    'requires_manual_review': False,
+                    'review_reason': None,
+                    'split_plan': None,
+                }
+
+        # =================================================================
+        # Phase 2: Product Exclusions (LPM lookup)
+        # =================================================================
+        product_exclusion = IeepaReciprocalProductExclusions.find_longest_match(hts_clean, entry_date)
+        if product_exclusion:
+            return {
+                'variant': 'annex_ii_exempt',
+                'action': 'exempt',
+                'chapter_99_code': product_exclusion.ch99_code,
+                'duty_rate': 0.0,
+                'duty_amount': 0.0,
+                'value_basis': 'ZERO',
+                'reason': f'Annex II exclusion: {product_exclusion.category} - {product_exclusion.description or ""}',
+                'requires_manual_review': False,
+                'review_reason': None,
+                'split_plan': None,
+            }
+
+        # =================================================================
+        # Phase 3: Deal Overrides (LPM lookup)
+        # =================================================================
+        deal_override = IeepaReciprocalDealOverrides.find_deal_override(country_code, hts_clean, entry_date)
+        if deal_override:
+            rate_pct = float(deal_override.override_rate) if deal_override.override_rate else 0.0
+            duty_amount = entered_value * rate_pct / 100
+
+            return {
+                'variant': 'deal_override',
+                'action': 'exempt' if rate_pct == 0 else 'paid',
+                'chapter_99_code': deal_override.ch99_code or '9903.01.25',
+                'duty_rate': rate_pct,
+                'duty_amount': duty_amount,
+                'value_basis': 'FULL',
+                'reason': f'Deal override: {deal_override.deal_name}',
+                'deal_name': deal_override.deal_name,
+                'requires_manual_review': False,
+                'review_reason': None,
+                'split_plan': None,
+            }
+
+        # =================================================================
+        # Phase 4: Country Rate Schedule Lookup
+        # =================================================================
+        schedule = _get_country_schedule(country_code, entry_date, IeepaReciprocalRateSchedule)
+
+        if not schedule:
+            # Fallback to baseline
+            schedule = _get_country_schedule(None, entry_date, IeepaReciprocalRateSchedule)
+
+        if not schedule:
+            # No schedule found - use hardcoded baseline
+            return {
+                'variant': 'taxable',
+                'action': 'paid',
+                'chapter_99_code': '9903.01.25',
+                'duty_rate': 10.0,
+                'duty_amount': entered_value * 0.10,
+                'value_basis': 'FULL',
+                'reason': 'Default baseline rate (no schedule found)',
+                'requires_manual_review': True,
+                'review_reason': 'No rate schedule found for country/date',
+                'split_plan': None,
+            }
+
+        # =================================================================
+        # Phase 5: MFN Ceiling Computation
+        # =================================================================
+        if schedule.regime_type == 'MFN_CEILING':
+            ceiling_pct = float(schedule.ceiling_pct) if schedule.ceiling_pct else 15.0
+
+            if base_mfn_ad_val is None:
+                # Bug C fix: Return conservative estimate instead of None/None
+                duty_amount = entered_value * ceiling_pct / 100
+                return {
+                    'variant': 'mfn_ceiling',
+                    'action': 'paid',
+                    'chapter_99_code': schedule.ch99_mfn_topup,  # Pessimistic
+                    'duty_rate': ceiling_pct,
+                    'duty_amount': duty_amount,
+                    'value_basis': 'FULL',
+                    'reason': f'MFN ceiling for {country_code}: {ceiling_pct}% (conservative - MFN unknown)',
+                    'requires_manual_review': True,
+                    'review_reason': 'MFN base rate unknown; using ceiling as conservative estimate',
+                    'split_plan': None,
+                }
+
+            # Calculate effective rate
+            if base_mfn_ad_val >= ceiling_pct:
+                # MFN already exceeds ceiling - no additional duty
+                return {
+                    'variant': 'mfn_ceiling',
+                    'action': 'exempt',
+                    'chapter_99_code': schedule.ch99_mfn_zero,
+                    'duty_rate': 0.0,
+                    'duty_amount': 0.0,
+                    'value_basis': 'ZERO',
+                    'reason': f'MFN ({base_mfn_ad_val}%) >= ceiling ({ceiling_pct}%): no IEEPA duty',
+                    'requires_manual_review': False,
+                    'review_reason': None,
+                    'split_plan': None,
+                }
+            else:
+                # Top-up to ceiling
+                effective_rate = ceiling_pct - base_mfn_ad_val
+                duty_amount = entered_value * effective_rate / 100
+                return {
+                    'variant': 'mfn_ceiling',
+                    'action': 'paid',
+                    'chapter_99_code': schedule.ch99_mfn_topup,
+                    'duty_rate': ceiling_pct,  # Report ceiling rate, not delta
+                    'duty_amount': duty_amount,
+                    'value_basis': 'FULL',
+                    'reason': f'MFN ceiling: {ceiling_pct}% - {base_mfn_ad_val}% MFN = {effective_rate}% IEEPA duty',
+                    'requires_manual_review': False,
+                    'review_reason': None,
+                    'split_plan': None,
+                }
+
+        # =================================================================
+        # Phase 6: Standard Rate Calculation
+        # =================================================================
+        if schedule.regime_type == 'EXEMPT':
+            return {
+                'variant': 'exempt',
+                'action': 'exempt',
+                'chapter_99_code': schedule.ch99_code,
+                'duty_rate': 0.0,
+                'duty_amount': 0.0,
+                'value_basis': 'ZERO',
+                'reason': f'Country {country_code} exempt from IEEPA reciprocal ({schedule.country_group})',
+                'requires_manual_review': False,
+                'review_reason': None,
+                'split_plan': None,
+            }
+
+        # BASELINE_10, FIXED_RATE, SUSPENDED_TO_BASELINE
+        rate_pct = float(schedule.rate_pct) if schedule.rate_pct else 10.0
+        duty_amount = entered_value * rate_pct / 100
+
+        variant = 'taxable'
+        if schedule.regime_type == 'SUSPENDED_TO_BASELINE':
+            variant = 'suspended_to_baseline'
+        elif schedule.regime_type == 'BASELINE_10':
+            variant = 'baseline'
+
+        return {
+            'variant': variant,
+            'action': 'paid',
+            'chapter_99_code': schedule.ch99_code or '9903.01.25',
+            'duty_rate': rate_pct,
+            'duty_amount': duty_amount,
+            'value_basis': 'FULL',
+            'reason': f'{schedule.regime_type} rate for {country_code}: {rate_pct}%',
+            'requires_manual_review': False,
+            'review_reason': None,
+            'split_plan': None,
+        }
+
+
+def _get_country_schedule(country_code, entry_date, model_class):
+    """Helper to get country rate schedule with fallback to baseline.
+
+    When multiple rows match (e.g. v21.0 + v21.1 overlap), prefer the
+    latest dataset_tag (lexicographic DESC) and then latest id as tiebreaker.
+    """
+    query = model_class.query.filter(
+        model_class.country_code == country_code,
+        model_class.effective_start <= entry_date,
+        model_class.effective_end > entry_date
+    ).order_by(
+        model_class.dataset_tag.desc(),
+        model_class.id.desc()
+    )
+    return query.first()
+
+
+def _check_section_232_subject(hts_digits: str, entry_date: date, models) -> bool:
+    """
+    Check if HTS is subject to Section 232 (steel, aluminum, copper).
+
+    Uses the Section232Material table - presence of a row means 232 applies.
+    Returns True if any 232 material entry exists for this HTS.
+    """
+    Section232Material = models.get("Section232Material")
+    if not Section232Material:
+        return False
+
+    # Normalize to 8 digits for lookup
+    hts_8 = hts_digits[:8] if len(hts_digits) >= 8 else hts_digits
+
+    # Check for exact match on hts_8digit
+    match = Section232Material.query.filter(
+        Section232Material.hts_8digit == hts_8
+    ).first()
+
+    return match is not None
+
+
 @tool
 def resolve_reciprocal_variant(
     hts_code: str,
@@ -2571,15 +2960,25 @@ def resolve_reciprocal_variant(
     us_content_pct: Optional[float] = None,
     import_date: Optional[str] = None,
     article_type: Optional[str] = None,
-    country_code: Optional[str] = None
+    country_code: Optional[str] = None,
+    # V2 optional inputs (passed through from Tool 5 per Gap #2)
+    entered_value: Optional[float] = None,
+    base_mfn_ad_val: Optional[float] = None,
+    load_date: Optional[str] = None,
+    vessel_final_mode: Optional[bool] = None,
+    chapter98_claim: Optional[str] = None,
+    cbp_transshipment: bool = False,
+    is_donation: bool = False,
+    is_info_material: bool = False
 ) -> str:
     """
     v4.0: Determine IEEPA Reciprocal variant for a given slice.
     v11.0: Added article_type for Note 16 full-value exemption.
     v12.0: Added Annex II energy product exemption check.
     v13.0: Added country_code for temporal rate lookups.
+    v21.0: Added feature flag wrapper for V2 engine.
 
-    Priority order:
+    Priority order (V1 legacy):
     1. annex_ii_energy_exempt - If HTS is an Annex II energy product (propane, LPG, etc.)
     2. annex_ii_exempt - If HTS is in Annex II exclusion list (DB lookup)
     3. us_content_exempt - If US content >= 20%
@@ -2587,17 +2986,71 @@ def resolve_reciprocal_variant(
     5. metal_exempt - If slice is a 232 metal slice (copper_slice, steel_slice, aluminum_slice)
     6. taxable - Default, pay 10% reciprocal tariff
 
+    V2 engine (USE_IEEPA_V2_ENGINE=true):
+    Uses 6-phase data-driven algorithm with full temporal versioning.
+
     Args:
         hts_code: The 10-digit HTS code
         slice_type: Slice type: 'full', 'non_metal', 'copper_slice', 'steel_slice', 'aluminum_slice'
-        us_content_pct: US content percentage (0.0-1.0), if known
+        us_content_pct: US content percentage (0.0-1.0 for V1, 0-100 for V2)
         import_date: Date of import (YYYY-MM-DD)
         article_type: Phase 11 - 'primary', 'derivative', or 'content' per U.S. Note 16
         country_code: v13.0 - ISO 2-letter country code for temporal rate lookup
+        entered_value: V2 - Entry value in USD
+        base_mfn_ad_val: V2 - Base MFN ad valorem rate (percentage)
+        load_date: V2 - Date goods were loaded (for in-transit)
+        vessel_final_mode: V2 - Final mode vessel flag
+        chapter98_claim: V2 - Chapter 98 claim type
+        cbp_transshipment: V2 - CBP transshipment determination
+        is_donation: V2 - Donation flag
+        is_info_material: V2 - Information material flag
 
     Returns:
         JSON with variant, action, chapter_99_code, and duty_rate
     """
+    # v21.0: Feature flag for V2 engine
+    if os.getenv('USE_IEEPA_V2_ENGINE', 'false').lower() == 'true':
+        # Convert V1 inputs to V2 format
+        entry_date = date.fromisoformat(import_date) if import_date else date.today()
+
+        # V1 us_content_pct is 0.0-1.0, V2 uses 0-100
+        # Minor fix #2: This heuristic assumes values < 1.0 are decimal fractions.
+        # WARNING: Values like 0.5% (literal half-percent) would be incorrectly
+        # converted to 50%. Low risk in practice since US content < 1% is rare
+        # and below the 20% threshold anyway. Callers should document their convention.
+        v2_us_content = None
+        if us_content_pct is not None:
+            v2_us_content = us_content_pct * 100 if us_content_pct < 1.0 else us_content_pct
+
+        v2_load_date = date.fromisoformat(load_date) if load_date else None
+
+        # Call V2 resolver
+        result = resolve_ieepa_reciprocal_v2(
+            hts_digits=hts_code.replace('.', ''),
+            country_code=country_code,  # Pass None for baseline lookup, not 'XX'
+            entry_date=entry_date,
+            entered_value=entered_value or 10000.0,  # Default to $10k if not specified
+            base_mfn_ad_val=base_mfn_ad_val,
+            load_date=v2_load_date,
+            vessel_final_mode=vessel_final_mode,
+            us_content_pct=v2_us_content,
+            chapter98_claim=chapter98_claim,
+            cbp_transshipment=cbp_transshipment,
+            is_donation=is_donation,
+            is_info_material=is_info_material
+        )
+
+        # Bug D verified: Convert V2 output to V1 format
+        # V2 uses percentage (10.0 = 10%), V1 uses decimal (0.10 = 10%)
+        return json.dumps({
+            "variant": result['variant'],
+            "action": result['action'],
+            "chapter_99_code": result['chapter_99_code'],
+            "duty_rate": result['duty_rate'] / 100,  # Convert percentage to decimal
+            "reason": result.get('reason', '')
+        })
+
+    # V1 legacy logic below
     # v13.0: Use temporal lookups for all reciprocal variants
     # Get rate data for each variant type (with fallback to hardcoded)
     annex_ii_rate = get_ieepa_rate_temporal('reciprocal', country_code, import_date, 'annex_ii_exempt')

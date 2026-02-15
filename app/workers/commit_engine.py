@@ -98,9 +98,11 @@ class CommitEngine:
             return "section_232_copper"
 
         # IEEPA codes
-        if ch99.startswith("9903.01") or "fentanyl" in str(candidate.program or "").lower():
+        # 9903.01.24 is fentanyl; 9903.01.25-35 are reciprocal exception codes;
+        # 9903.02.* are reciprocal country-specific codes
+        if ch99 == "9903.01.24" or "fentanyl" in str(candidate.program or "").lower():
             return "ieepa_fentanyl"
-        if ch99.startswith("9903.02") or "reciprocal" in str(candidate.program or "").lower():
+        if ch99.startswith("9903.01") or ch99.startswith("9903.02") or "reciprocal" in str(candidate.program or "").lower():
             return "ieepa_reciprocal"
 
         # Default to 301 if we have a 9903 code

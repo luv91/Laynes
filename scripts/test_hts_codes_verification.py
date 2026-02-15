@@ -22,9 +22,11 @@ from datetime import date
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Set up database URL
-DATABASE_URL = os.environ.get('DATABASE_URL',
-    "postgresql://postgres:lBcijTrVUpeXPiJYKAdIboMpkpslTnJq@metro.proxy.rlwy.net:51109/railway")
+# Set up database URL (must be provided via environment variable)
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('IEEPA_TEST_DB_URL', '')
+if not DATABASE_URL:
+    print("ERROR: DATABASE_URL or IEEPA_TEST_DB_URL environment variable required")
+    sys.exit(1)
 
 # Test cases to verify
 TEST_CASES = [

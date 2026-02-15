@@ -641,6 +641,13 @@ def build_entry_stacks_node(state: StackingState) -> dict:
             elif program_id == "ieepa_reciprocal":
                 # IEEPA Reciprocal - determine variant
                 import_date = state.get("import_date")
+                country = state.get("country", "")
+                product_value = state.get("product_value", 0)
+
+                # v21.1: Normalize country to ISO2 for V2 resolver
+                from app.chat.tools.stacking_tools import normalize_country
+                normalized = normalize_country(country)
+                country_iso2 = normalized.get("iso_alpha2") or country
 
                 # Phase 11: Get article_type for Note 16 full-value exemption
                 article_type = None
@@ -658,7 +665,9 @@ def build_entry_stacks_node(state: StackingState) -> dict:
                     "slice_type": slice_type,
                     "us_content_pct": None,
                     "import_date": import_date,
-                    "article_type": article_type
+                    "article_type": article_type,
+                    "country_code": country_iso2,
+                    "entered_value": float(product_value) if product_value else None,
                 }))
                 variant = variant_result.get("variant", "taxable")
                 action = variant_result.get("action", "paid")

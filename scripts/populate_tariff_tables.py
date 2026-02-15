@@ -365,6 +365,27 @@ def populate_tariff_programs(app):
 
     with app.app_context():
         print("Populating tariff_programs...")
+
+        # Clean up stale country-specific rows for programs that now use ALL.
+        # e.g. ieepa_reciprocal was previously 9 country-specific rows,
+        # now it's a single ALL row. Delete the old country rows so they
+        # don't coexist with the new ALL row.
+        csv_program_keys = {
+            (p["program_id"], p["country"]) for p in programs
+        }
+        all_programs = {p["program_id"] for p in programs if p["country"] == "ALL"}
+        if all_programs:
+            stale = TariffProgram.query.filter(
+                TariffProgram.program_id.in_(all_programs),
+                TariffProgram.country != "ALL"
+            ).all()
+            if stale:
+                print(f"  Removing {len(stale)} stale country-specific row(s) "
+                      f"for programs that now use ALL:")
+                for s in stale:
+                    print(f"    {s.program_id} / {s.country}")
+                    db.session.delete(s)
+
         for prog_data in programs:
             # Query by program_id AND country since same program can apply to multiple countries
             existing = TariffProgram.query.filter_by(
@@ -1800,12 +1821,16 @@ def deduplicate_ieepa_tariff_programs(app):
         print("\n=== v21.0: IEEPA Semantic Duplicate Cleanup ===")
 
         # Step 1: Find IEEPA rows with full country names
-        full_name_rows = db.session.execute(text("""
+        # Build individual placeholders for SQLite compatibility
+        full_names = list(IEEPA_COUNTRY_TO_ISO.keys())
+        placeholders = ", ".join(f":n{i}" for i in range(len(full_names)))
+        params = {f"n{i}": name for i, name in enumerate(full_names)}
+        full_name_rows = db.session.execute(text(f"""
             SELECT id, program_id, country
             FROM tariff_programs
             WHERE program_id LIKE 'ieepa%'
-              AND country IN :full_names
-        """), {"full_names": tuple(IEEPA_COUNTRY_TO_ISO.keys())}).fetchall()
+              AND country IN ({placeholders})
+        """), params).fetchall()
 
         if not full_name_rows:
             print("  No IEEPA semantic duplicates found. Database is clean.")

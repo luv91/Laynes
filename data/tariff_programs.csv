@@ -8,12 +8,4 @@ section_232_steel,Section 232 Steel,ALL,hts_lookup,handle_material_composition,s
 section_232_aluminum,Section 232 Aluminum,ALL,hts_lookup,handle_material_composition,aluminum,section_232_materials,,6,5,Section_232_Aluminum_Proclamation.pdf,2018-03-23,,omit
 section_232_auto,Section 232 Auto Parts,ALL,hts_lookup,handle_material_composition,auto,section_232_materials,,7,6,Proclamation_10908_90FR14705_AutoParts.pdf,2025-05-03,,omit
 section_232_semiconductor,Section 232 Semiconductors,ALL,hts_lookup,handle_material_composition,semiconductor,section_232_materials,,8,7,CSMS_67400472_Semiconductor_Jan2026.pdf,2026-01-15,,omit
-ieepa_reciprocal,IEEPA Reciprocal Tariff,CN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,HK,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,MO,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,GB,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,JP,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,VN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,IN,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,TW,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
-ieepa_reciprocal,IEEPA Reciprocal Tariff,KR,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,IEEPA_Reciprocal_Notice.pdf,2024-01-01,,
+ieepa_reciprocal,IEEPA Reciprocal Tariff,ALL,always,handle_dependency,section_232,,ieepa_annex_ii_exclusions,3,6,EO_14326_Reciprocal.pdf,2025-04-05,,

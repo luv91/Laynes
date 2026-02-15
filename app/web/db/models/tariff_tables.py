@@ -1809,3 +1809,314 @@ class EvidenceQuote(BaseModel):
             "url_in_grounding_metadata": self.url_in_grounding_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+# =============================================================================
+# IEEPA Reciprocal V2 Tables (v21.0)
+# =============================================================================
+
+class IeepaReciprocalRateSchedule(BaseModel):
+    """
+    v21.0: Table A - Country Rate Schedule for IEEPA Reciprocal.
+
+    Stores per-country tariff rates with temporal versioning.
+    Supports ~185 Annex I countries plus baseline default.
+
+    Regime types:
+    - BASELINE_10: Universal 10% baseline
+    - FIXED_RATE: Country-specific rate (e.g., Vietnam 41%)
+    - MFN_CEILING: Rate = min(ceiling, max(0, ceiling - base_mfn))
+    - SUSPENDED_TO_BASELINE: Temporarily reduced to 10% (e.g., China May 2025)
+    - EXEMPT: No IEEPA reciprocal (USMCA, Column 2 countries)
+
+    Temporal semantics: effective_start <= date < effective_end (closed-open)
+    """
+    __tablename__ = "ieepa_reciprocal_rate_schedule"
+    __table_args__ = (
+        UniqueConstraint('country_code', 'effective_start', 'dataset_tag',
+                         name='uq_recip_rate_country_period'),
+        db.Index('idx_recip_rate_lookup', 'country_code', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    country_code = db.Column(db.String(2), nullable=True, index=True)  # NULL = baseline default
+    country_group = db.Column(db.String(32), nullable=True)  # 'EU', 'MFN_CEILING', 'ANNEX_I', etc.
+    regime_type = db.Column(db.String(32), nullable=False)  # 'BASELINE_10', 'FIXED_RATE', etc.
+    rate_pct = db.Column(db.Numeric(6, 2), nullable=True)  # Percentage: 10.00 = 10%
+    ceiling_pct = db.Column(db.Numeric(6, 2), nullable=True)  # For MFN_CEILING only
+    ch99_code = db.Column(db.String(16), nullable=True)  # Primary duty-bearing heading
+    ch99_mfn_zero = db.Column(db.String(16), nullable=True)  # MFN ceiling: code when MFN >= ceiling
+    ch99_mfn_topup = db.Column(db.String(16), nullable=True)  # MFN ceiling: code when MFN < ceiling
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=False, default=date(9999, 12, 31))
+    legal_authority = db.Column(db.String(256), nullable=True)
+    fr_citation = db.Column(db.String(256), nullable=True)
+    deal_name = db.Column(db.String(128), nullable=True)
+    source_doc_id = db.Column(db.Integer, nullable=True)
+    dataset_tag = db.Column(db.String(64), nullable=False)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if rate is active as of date using closed-open interval."""
+        check_date = as_of_date or date.today()
+        return self.effective_start <= check_date < self.effective_end
+
+    @classmethod
+    def get_applicable(cls, as_of_date: date, country_code: Optional[str] = None):
+        """Get applicable rate for country on date. Prefers latest dataset_tag."""
+        query = cls.query.filter(
+            cls.effective_start <= as_of_date,
+            cls.effective_end > as_of_date
+        )
+        if country_code:
+            query = query.filter(cls.country_code == country_code)
+        return query.order_by(cls.dataset_tag.desc(), cls.id.desc()).first()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "country_code": self.country_code,
+            "country_group": self.country_group,
+            "regime_type": self.regime_type,
+            "rate_pct": float(self.rate_pct) if self.rate_pct else None,
+            "ceiling_pct": float(self.ceiling_pct) if self.ceiling_pct else None,
+            "ch99_code": self.ch99_code,
+            "ch99_mfn_zero": self.ch99_mfn_zero,
+            "ch99_mfn_topup": self.ch99_mfn_topup,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "legal_authority": self.legal_authority,
+            "fr_citation": self.fr_citation,
+            "deal_name": self.deal_name,
+            "dataset_tag": self.dataset_tag,
+        }
+
+
+class IeepaReciprocalProductExclusions(BaseModel):
+    """
+    v21.0: Table B - Product Exclusions for IEEPA Reciprocal.
+
+    HTS prefixes exempt from IEEPA reciprocal tariffs.
+    Uses Longest Prefix Match (LPM) - 10-digit code matches longest prefix.
+
+    Categories:
+    - ANNEX_II_ORIGINAL: Original EO 14257 Annex II exclusions
+    - AGRICULTURAL: Agricultural products (added Nov 2025)
+    - PHARMACEUTICAL: Covered pharmaceuticals
+    - SEMICONDUCTOR: Semiconductor devices
+    - CRITICAL_MINERAL: Strategic minerals
+    - ENERGY: Energy products (2709, 2701, etc.)
+    """
+    __tablename__ = "ieepa_reciprocal_product_exclusions"
+    __table_args__ = (
+        db.Index('idx_recip_excl_lpm', 'prefix_len', 'hts_prefix', 'effective_start', 'effective_end'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    hts_prefix = db.Column(db.String(10), nullable=False, index=True)  # Digits only: '8471', '847330'
+    prefix_len = db.Column(db.SmallInteger, nullable=False)  # 4, 6, 8, or 10
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(64), nullable=True)  # 'ANNEX_II_ORIGINAL', 'AGRICULTURAL', etc.
+    ch99_code = db.Column(db.String(16), nullable=False, default='9903.01.32')
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=False, default=date(9999, 12, 31))
+    legal_authority = db.Column(db.String(256), nullable=True)
+    source_doc_id = db.Column(db.Integer, nullable=True)
+    dataset_tag = db.Column(db.String(64), nullable=False)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if exclusion is active as of date."""
+        check_date = as_of_date or date.today()
+        return self.effective_start <= check_date < self.effective_end
+
+    @classmethod
+    def find_longest_match(cls, hts_digits: str, as_of_date: date):
+        """
+        Find longest matching prefix for HTS code using LPM.
+
+        Returns exclusion with longest matching prefix, or None.
+        """
+        # Try prefixes from longest to shortest
+        for prefix_len in [10, 8, 6, 4]:
+            if len(hts_digits) >= prefix_len:
+                prefix = hts_digits[:prefix_len]
+                match = cls.query.filter(
+                    cls.hts_prefix == prefix,
+                    cls.prefix_len == prefix_len,
+                    cls.effective_start <= as_of_date,
+                    cls.effective_end > as_of_date
+                ).first()
+                if match:
+                    return match
+        return None
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "hts_prefix": self.hts_prefix,
+            "prefix_len": self.prefix_len,
+            "description": self.description,
+            "category": self.category,
+            "ch99_code": self.ch99_code,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "legal_authority": self.legal_authority,
+            "dataset_tag": self.dataset_tag,
+        }
+
+
+class IeepaReciprocalExceptionRules(BaseModel):
+    """
+    v21.0: Table C - Exception Rules for IEEPA Reciprocal.
+
+    Priority-ordered rules that override normal country rates.
+    Each rule has specific conditions (flags, dates, content%).
+
+    Rule codes:
+    - TRANSSHIPMENT: CBP-directed 40% penalty (priority 1)
+    - S232_SUBJECT: 232 steel/aluminum exempt (priority 2)
+    - COLUMN2: North Korea, Cuba exempt (priority 3)
+    - USMCA: CA/MX exempt (priority 4)
+    - DONATION: Donations exempt (priority 5)
+    - TIB_REPORT_ONLY: TIB entries report code only (priority 6)
+    - INFO_MATERIAL: Information materials exempt (priority 7)
+    - US_CONTENT_SPLIT: Deduct US content from value (priority 8)
+    - CH98_REPAIR: Chapter 98 repair value only (priority 9)
+    - IN_TRANSIT_APR: April in-transit window (priority 10)
+    - IN_TRANSIT_AUG: August in-transit window (priority 11)
+
+    Bug fixes applied:
+    - Bug #1: requires_vessel_final_mode BOOLEAN column
+    - Bug #3: ch99_code nullable (TIB uses country's code)
+    - Bug A: transit_entry_start DATE column
+    - Bug B: requires_flag 'country_would_exceed_baseline' for Aug in-transit
+    """
+    __tablename__ = "ieepa_reciprocal_exception_rules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    rule_code = db.Column(db.String(32), nullable=False, unique=True)
+    priority = db.Column(db.SmallInteger, nullable=False)
+    ch99_code = db.Column(db.String(16), nullable=True)  # NULLABLE per Bug #3
+    rate_override = db.Column(db.Numeric(6, 2), nullable=True)  # Percentage: 40.00 = 40%
+    country_set = db.Column(JSON, nullable=True)  # List of country codes, e.g., ['CA', 'MX']
+    requires_flag = db.Column(db.String(64), nullable=True)  # 'cbp_transshipment_determination', etc.
+    transit_load_before = db.Column(db.Date, nullable=True)  # Loaded before this date
+    transit_entry_start = db.Column(db.Date, nullable=True)  # Entry >= this date (Bug A fix)
+    transit_enter_before = db.Column(db.Date, nullable=True)  # Entry < this date
+    requires_vessel_final_mode = db.Column(db.Boolean, nullable=False, default=False)  # Bug #1 fix
+    min_us_content_pct = db.Column(db.Numeric(5, 2), nullable=True)  # Percentage: 20.00 = 20%
+    value_basis = db.Column(db.String(32), nullable=False, default='ZERO')  # 'FULL', 'NON_US_CONTENT', 'ZERO', 'REPAIR_VALUE'
+    creates_split = db.Column(db.Boolean, nullable=False, default=False)
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=False, default=date(9999, 12, 31))
+    description = db.Column(db.Text, nullable=True)
+    legal_authority = db.Column(db.String(256), nullable=True)
+    dataset_tag = db.Column(db.String(64), nullable=False)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if rule is queryable as of date."""
+        check_date = as_of_date or date.today()
+        return self.effective_start <= check_date < self.effective_end
+
+    @classmethod
+    def get_active_rules_ordered(cls, as_of_date: date):
+        """Get all active rules ordered by priority."""
+        return cls.query.filter(
+            cls.effective_start <= as_of_date,
+            cls.effective_end > as_of_date
+        ).order_by(cls.priority).all()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "rule_code": self.rule_code,
+            "priority": self.priority,
+            "ch99_code": self.ch99_code,
+            "rate_override": float(self.rate_override) if self.rate_override else None,
+            "country_set": self.country_set,
+            "requires_flag": self.requires_flag,
+            "transit_load_before": self.transit_load_before.isoformat() if self.transit_load_before else None,
+            "transit_entry_start": self.transit_entry_start.isoformat() if self.transit_entry_start else None,
+            "transit_enter_before": self.transit_enter_before.isoformat() if self.transit_enter_before else None,
+            "requires_vessel_final_mode": self.requires_vessel_final_mode,
+            "min_us_content_pct": float(self.min_us_content_pct) if self.min_us_content_pct else None,
+            "value_basis": self.value_basis,
+            "creates_split": self.creates_split,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "description": self.description,
+            "legal_authority": self.legal_authority,
+            "dataset_tag": self.dataset_tag,
+        }
+
+
+class IeepaReciprocalDealOverrides(BaseModel):
+    """
+    v21.0: Table D - Bilateral Deal Overrides for IEEPA Reciprocal.
+
+    Country + product-specific rate overrides from bilateral deals.
+    Uses LPM - longest matching prefix wins.
+
+    Examples:
+    - India interim deal: 18% on certain goods
+    - Argentina: Reduced rates on specific HTS
+    - Taiwan, UK arrangements
+    """
+    __tablename__ = "ieepa_reciprocal_deal_overrides"
+    __table_args__ = (
+        db.Index('idx_recip_deal_lpm', 'country_code', 'prefix_len', 'hts_prefix'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    country_code = db.Column(db.String(2), nullable=False, index=True)
+    hts_prefix = db.Column(db.String(10), nullable=False)
+    prefix_len = db.Column(db.SmallInteger, nullable=False)
+    override_rate = db.Column(db.Numeric(6, 2), nullable=True)  # Percentage: 18.00 = 18%
+    ch99_code = db.Column(db.String(16), nullable=True)
+    deal_name = db.Column(db.String(128), nullable=False)
+    effective_start = db.Column(db.Date, nullable=False)
+    effective_end = db.Column(db.Date, nullable=False, default=date(9999, 12, 31))
+    legal_authority = db.Column(db.String(256), nullable=True)
+    source_doc_id = db.Column(db.Integer, nullable=True)
+    dataset_tag = db.Column(db.String(64), nullable=False)
+
+    def is_active(self, as_of_date: Optional[date] = None) -> bool:
+        """Check if deal is active as of date."""
+        check_date = as_of_date or date.today()
+        return self.effective_start <= check_date < self.effective_end
+
+    @classmethod
+    def find_deal_override(cls, country_code: str, hts_digits: str, as_of_date: date):
+        """
+        Find deal override for country + HTS using LPM.
+
+        Returns override with longest matching prefix, or None.
+        """
+        # Try prefixes from longest to shortest
+        for prefix_len in [10, 8, 6, 4]:
+            if len(hts_digits) >= prefix_len:
+                prefix = hts_digits[:prefix_len]
+                match = cls.query.filter(
+                    cls.country_code == country_code,
+                    cls.hts_prefix == prefix,
+                    cls.prefix_len == prefix_len,
+                    cls.effective_start <= as_of_date,
+                    cls.effective_end > as_of_date
+                ).first()
+                if match:
+                    return match
+        return None
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "country_code": self.country_code,
+            "hts_prefix": self.hts_prefix,
+            "prefix_len": self.prefix_len,
+            "override_rate": float(self.override_rate) if self.override_rate else None,
+            "ch99_code": self.ch99_code,
+            "deal_name": self.deal_name,
+            "effective_start": self.effective_start.isoformat() if self.effective_start else None,
+            "effective_end": self.effective_end.isoformat() if self.effective_end else None,
+            "legal_authority": self.legal_authority,
+            "dataset_tag": self.dataset_tag,
+        }

@@ -32,7 +32,7 @@ sys.path.insert(0, str(project_root))
 # Flask app context needed for database access
 from app.web import create_app
 from app.web.db import db
-from app.web.db.models.tariff_tables import IeepaAnnexIIExclusion
+from app.web.db.models.tariff_tables import IeepaAnnexIIExclusion, IeepaReciprocalProductExclusions
 
 
 # ==============================================================================
@@ -232,6 +232,57 @@ def upsert_exclusions(parsed_rows: list, dry_run: bool = False) -> dict:
     return stats
 
 
+def upsert_v2_exclusions(parsed_rows: list, dry_run: bool = False) -> dict:
+    """
+    Mirror Annex II exclusions into the V2 product exclusions table.
+
+    The V2 resolver reads from ieepa_reciprocal_product_exclusions,
+    not ieepa_annex_ii_exclusions. This keeps both tables in sync.
+    """
+    stats = {'inserted': 0, 'updated': 0, 'unchanged': 0}
+
+    for row in parsed_rows:
+        hts_prefix = row['hts_code']
+        prefix_len = len(hts_prefix)
+
+        existing = IeepaReciprocalProductExclusions.query.filter_by(
+            hts_prefix=hts_prefix,
+            prefix_len=prefix_len,
+            category='ANNEX_II_ORIGINAL',
+        ).first()
+
+        if existing:
+            needs_update = (
+                existing.description != row['description']
+            )
+            if needs_update:
+                if not dry_run:
+                    existing.description = row['description']
+                stats['updated'] += 1
+            else:
+                stats['unchanged'] += 1
+        else:
+            if not dry_run:
+                new_record = IeepaReciprocalProductExclusions(
+                    hts_prefix=hts_prefix,
+                    prefix_len=prefix_len,
+                    description=row['description'],
+                    category='ANNEX_II_ORIGINAL',
+                    ch99_code='9903.01.32',
+                    effective_start=row['effective_date'],
+                    effective_end=date(9999, 12, 31),
+                    legal_authority='EO 14257 Annex II',
+                    dataset_tag='v21.0_annex_ii',
+                )
+                db.session.add(new_record)
+            stats['inserted'] += 1
+
+    if not dry_run:
+        db.session.commit()
+
+    return stats
+
+
 # ==============================================================================
 # Main Entry Point
 # ==============================================================================
@@ -297,9 +348,13 @@ def main():
 
         stats = upsert_exclusions(parsed_rows, dry_run=args.dry_run)
 
+        # Also mirror to V2 product exclusions table (used by V2 resolver)
+        print("\nMirroring to V2 product exclusions table...")
+        v2_stats = upsert_v2_exclusions(parsed_rows, dry_run=args.dry_run)
+
         # Print results
         print("\n" + "=" * 60)
-        print("Ingestion Results:")
+        print("Ingestion Results (legacy table):")
         print("=" * 60)
         print(f"  Total parsed:     {stats['total_parsed']}")
         print(f"  Existing before:  {stats['existing_before']}")
@@ -307,11 +362,19 @@ def main():
         print(f"  Updated:          {stats['updated']}")
         print(f"  Unchanged:        {stats['unchanged']}")
 
+        print(f"\nV2 table (ieepa_reciprocal_product_exclusions):")
+        print(f"  Inserted:         {v2_stats['inserted']}")
+        print(f"  Updated:          {v2_stats['updated']}")
+        print(f"  Unchanged:        {v2_stats['unchanged']}")
+
         if args.dry_run:
             print("\n[DRY RUN] No changes made to database")
         else:
             final_count = IeepaAnnexIIExclusion.query.count()
-            print(f"\n  Final row count:  {final_count}")
+            v2_count = IeepaReciprocalProductExclusions.query.filter_by(
+                category='ANNEX_II_ORIGINAL').count()
+            print(f"\n  Legacy table rows:  {final_count}")
+            print(f"  V2 table rows:      {v2_count}")
             print("\n[SUCCESS] Ingestion complete")
 
 

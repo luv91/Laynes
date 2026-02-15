@@ -19,20 +19,18 @@ import os
 import pytest
 from datetime import date, timedelta
 
-# NOTE: These tests require the production database to be accessible
-# Hardcode the prod DB URL since conftest.py overrides the env var before we can read it
-PROD_DB_URL = "postgresql://postgres:lBcijTrVUpeXPiJYKAdIboMpkpslTnJq@metro.proxy.rlwy.net:51109/railway"
+# NOTE: These tests require a database to be accessible via IEEPA_TEST_DB_URL
+PROD_DB_URL = os.environ.get('IEEPA_TEST_DB_URL', '')
 
 
 def get_prod_app():
     """
-    Create a fresh Flask app configured for production database.
-
-    This bypasses conftest.py's SQLite configuration by:
-    1. Setting the env var before importing
-    2. Creating a fresh app
-    3. Resetting the stacking_tools cache
+    Create a fresh Flask app configured for test database.
+    Requires IEEPA_TEST_DB_URL environment variable.
     """
+    if not PROD_DB_URL:
+        pytest.skip('IEEPA_TEST_DB_URL not set — skipping integration tests')
+
     # Set env var for the Config class
     os.environ['SQLALCHEMY_DATABASE_URI'] = PROD_DB_URL
 

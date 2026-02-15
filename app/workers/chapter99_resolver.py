@@ -66,12 +66,20 @@ class Chapter99Resolver:
         # Section 232 - Copper
         "9903.78.01": {"program": "section_232", "material": "copper", "article": "all", "rate": 0.25},
 
-        # IEEPA - Fentanyl
-        "9903.01.25": {"program": "ieepa_fentanyl", "variant": "taxable", "rate": 0.20},
-        "9903.01.26": {"program": "ieepa_fentanyl", "variant": "annex_ii_exempt", "rate": 0.00},
+        # IEEPA - Fentanyl (only 9903.01.24)
+        "9903.01.24": {"program": "ieepa_fentanyl", "variant": "taxable", "rate": 0.20},
 
-        # IEEPA - Reciprocal
-        "9903.02.25": {"program": "ieepa_reciprocal", "variant": "baseline", "rate": 0.10},
+        # IEEPA - Reciprocal (9903.01.25-35 exception codes + 9903.02.* country codes)
+        "9903.01.25": {"program": "ieepa_reciprocal", "variant": "baseline", "rate": 0.10},
+        "9903.01.26": {"program": "ieepa_reciprocal", "variant": "usmca_exempt", "rate": 0.00},
+        "9903.01.27": {"program": "ieepa_reciprocal", "variant": "donation_exempt", "rate": 0.00},
+        "9903.01.28": {"program": "ieepa_reciprocal", "variant": "in_transit", "rate": 0.00},
+        "9903.01.29": {"program": "ieepa_reciprocal", "variant": "column2_exempt", "rate": 0.00},
+        "9903.01.30": {"program": "ieepa_reciprocal", "variant": "info_material", "rate": 0.00},
+        "9903.01.32": {"program": "ieepa_reciprocal", "variant": "annex_ii_exempt", "rate": 0.00},
+        "9903.01.33": {"program": "ieepa_reciprocal", "variant": "s232_exempt", "rate": 0.00},
+        "9903.01.34": {"program": "ieepa_reciprocal", "variant": "us_content", "rate": 0.00},
+        "9903.01.35": {"program": "ieepa_reciprocal", "variant": "repair", "rate": 0.00},
     }
 
     # Prefix mappings for unknown specific codes
@@ -82,7 +90,7 @@ class Chapter99Resolver:
         "9903.81": {"program": "section_232", "material": "steel", "article": "derivative"},
         "9903.85": {"program": "section_232", "material": "aluminum"},
         "9903.78": {"program": "section_232", "material": "copper"},
-        "9903.01": {"program": "ieepa_fentanyl"},
+        "9903.01": {"program": "ieepa_reciprocal"},  # 9903.01.24 (fentanyl) handled by exact match
         "9903.02": {"program": "ieepa_reciprocal"},
     }
 
